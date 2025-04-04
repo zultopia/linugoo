@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, Image, StyleSheet, SafeAreaView, ScrollView, Dimensions, ImageBackground } from 'react-native';
+import { View, Text, TouchableOpacity, Image, StyleSheet, SafeAreaView, ScrollView, Dimensions, ImageBackground, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 
 const { width } = Dimensions.get('window');
@@ -9,8 +9,16 @@ const DashboardPage = () => {
   const router = useRouter();
 
   const handleNavigation = (route: string) => {
-    // Use router.push() with type assertion to handle string routes
-    router.push(route as any);
+    if (route === '/(tabs)/profile') {
+      router.push('/profile');
+    } else if (route === '/jurnal') {
+      router.push('/(teacher)/jurnal');
+    } else if (route === '/data-siswa') {
+      router.push('/(teacher)/data-siswa');
+    } else {
+      // Fall back to using the route as is with type assertion
+      router.push(route as any);
+    }
   };
 
   const handleLogout = () => {
@@ -132,11 +140,21 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
     borderBottomColor: '#EEEEEE',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 3,
+    // Replace shadow properties with boxShadow
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 3,
+      },
+      android: {
+        elevation: 3,
+      },
+      web: {
+        boxShadow: '0px 2px 3px rgba(0, 0, 0, 0.1)',
+      },
+    }),
     zIndex: 10,
   },
   logoContainer: {
@@ -212,11 +230,21 @@ const styles = StyleSheet.create({
     height: 250,
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 5,
-    elevation: 5,
+    // Replace shadow properties with boxShadow
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.2,
+        shadowRadius: 5,
+      },
+      android: {
+        elevation: 5,
+      },
+      web: {
+        boxShadow: '0px 4px 5px rgba(0, 0, 0, 0.2)',
+      },
+    }),
   },
   cardSiswa: {
     backgroundColor: '#C70039',
@@ -226,11 +254,21 @@ const styles = StyleSheet.create({
     height: 250,
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 5,
-    elevation: 5,
+    // Replace shadow properties with boxShadow
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.2,
+        shadowRadius: 5,
+      },
+      android: {
+        elevation: 5,
+      },
+      web: {
+        boxShadow: '0px 4px 5px rgba(0, 0, 0, 0.2)',
+      },
+    }),
   },
   cardIcon: {
     width: 80,

@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, Image, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, Image, StyleSheet, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 
 interface NavbarProps {
@@ -10,8 +10,16 @@ const Navbar: React.FC<NavbarProps> = ({ currentRoute }) => {
   const router = useRouter();
 
   const handleNavigation = (route: string) => {
-    // Use router.push() with type assertion to handle string routes
-    router.push(route as any);
+    if (route === '/(tabs)/profile') {
+      router.push('/profile');
+    } else if (route === '/jurnal') {
+      router.push('/(teacher)/jurnal');
+    } else if (route === '/data-siswa') {
+      router.push('/(teacher)/data-siswa');
+    } else {
+      // Fall back to using the route as is with type assertion
+      router.push(route as any);
+    }
   };
 
   return (
@@ -57,7 +65,7 @@ const Navbar: React.FC<NavbarProps> = ({ currentRoute }) => {
         
         <TouchableOpacity 
           style={styles.profileButton}
-          onPress={() => handleNavigation('/(tabs)/profile')}
+          onPress={() => handleNavigation('/profile')}
         >
           <Image 
             source={require("../../assets/images/profile-placeholder.svg")}
@@ -79,11 +87,21 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
     borderBottomColor: '#EEEEEE',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 3,
+    // Replace shadow properties with boxShadow
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 3,
+      },
+      android: {
+        elevation: 3,
+      },
+      web: {
+        boxShadow: '0px 2px 3px rgba(0, 0, 0, 0.1)',
+      },
+    }),
     zIndex: 10,
   },
   logoContainer: {
