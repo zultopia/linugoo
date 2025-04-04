@@ -1,79 +1,248 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, Image, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, Image, StyleSheet, SafeAreaView, ScrollView, Dimensions, ImageBackground } from 'react-native';
+import { useRouter } from 'expo-router';
+
+const { width } = Dimensions.get('window');
+const isSmallDevice = width < 768;
 
 const DashboardPage = () => {
+  const router = useRouter();
+
+  const handleNavigation = (route: string) => {
+    // Use router.push() with type assertion to handle string routes
+    router.push(route as any);
+  };
+
+  const handleLogout = () => {
+    // Handle logout logic here
+    router.replace('/(auth)/login');
+  };
+
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.headerText}>Welcome back to linguoo!</Text>
-        <Image
-          source={require("../../assets/images/owl-fly.png")}
-          style={styles.avatar}
-        />
+    <SafeAreaView style={styles.container}>
+      {/* Navbar */}
+      <View style={styles.navbar}>
+        <View style={styles.logoContainer}>
+          <Image
+            source={require("../../assets/images/owl-academic.png")}
+            style={styles.logoIcon}
+            resizeMode="contain"
+          />
+          <View style={styles.logoTextContainer}>
+            <Text style={styles.logoText}>linugoo</Text>
+            <Text style={styles.logoSubtext}>untuk guru</Text>
+          </View>
+        </View>
+
+        <View style={styles.navLinksContainer}>
+          <TouchableOpacity 
+            style={styles.navLink}
+            onPress={() => handleNavigation('/jurnal')}
+          >
+            <Text style={styles.navLinkText}>Jurnal</Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity 
+            style={styles.navLink}
+            onPress={() => handleNavigation('/data-siswa')}
+          >
+            <Text style={styles.navLinkText}>Data Siswa</Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity 
+            style={styles.profileButton}
+            onPress={() => handleNavigation('/(tabs)/profile')}
+          >
+            <Image 
+              source={require("../../assets/images/profile-placeholder.svg")}
+              style={styles.profileIcon}
+            />
+          </TouchableOpacity>
+        </View>
       </View>
 
-      <View style={styles.body}>
-        <Text style={styles.sectionTitle}>Your Dashboard</Text>
-        <Text style={styles.description}>
-          Here you can manage your profile, explore new features, and much more.
-        </Text>
+      <ScrollView style={styles.scrollView}>
+        <ImageBackground 
+          source={require("../../assets/images/background.svg")} 
+          style={styles.backgroundPattern}
+          resizeMode="cover"
+        >
+          <View style={styles.contentContainer}>
+            {/* Welcome Header */}
+            <View style={styles.welcomeContainer}>
+              <View>
+                <Text style={styles.welcomeText}>Selamat Datang di</Text>
+                <Text style={styles.brandText}>linugoo</Text>
+              </View>
+            </View>
 
-        {/* Button to navigate to Profile */}
-        <TouchableOpacity style={styles.button} onPress={() => alert('Go to Profile')}>
-          <Text style={styles.buttonText}>Go to Profile</Text>
-        </TouchableOpacity>
+            {/* Card Options */}
+            <View style={styles.cardsContainer}>
+              <TouchableOpacity 
+                style={styles.cardJurnal}
+                onPress={() => handleNavigation('/jurnal')}
+              >
+                <Image 
+                  source={require("../../assets/images/journal-icon.svg")} 
+                  style={styles.cardIcon}
+                />
+                <Text style={styles.cardText}>Jurnal</Text>
+              </TouchableOpacity>
 
-        {/* Button to navigate to Settings */}
-        <TouchableOpacity style={styles.button} onPress={() => alert('Go to Settings')}>
-          <Text style={styles.buttonText}>Settings</Text>
-        </TouchableOpacity>
-
-        {/* Button to logout */}
-        <TouchableOpacity style={styles.logoutButton} onPress={() => alert('Logging out')}>
-          <Text style={styles.logoutButtonText}>Logout</Text>
-        </TouchableOpacity>
-      </View>
-    </View>
+              <TouchableOpacity 
+                style={styles.cardSiswa}
+                onPress={() => handleNavigation('/data-siswa')}
+              >
+                <Image 
+                  source={require("../../assets/images/student-icon.svg")} 
+                  style={styles.cardIcon}
+                />
+                <Text style={styles.cardText}>Data Siswa</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </ImageBackground>
+      </ScrollView>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f5f2eb' },
-  header: {
+  container: { 
+    flex: 1, 
+    backgroundColor: '#FFF5E0',
+  },
+  scrollView: {
+    flex: 1,
+  },
+  backgroundPattern: {
+    flex: 1,
+    width: '100%',
+  },
+  contentContainer: {
+    flex: 1,
+    padding: 20,
+  },
+  navbar: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 20,
-    backgroundColor: '#a02226',
-    borderBottomLeftRadius: 30,
-    borderBottomRightRadius: 30,
+    paddingHorizontal: 20,
+    paddingVertical: 15,
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#EEEEEE',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 3,
+    zIndex: 10,
   },
-  headerText: { fontSize: 24, fontWeight: 'bold', color: 'white' },
-  avatar: { width: 50, height: 50, borderRadius: 25 },
-
-  body: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 },
-  sectionTitle: { fontSize: 28, fontWeight: 'bold', marginBottom: 10 },
-  description: { fontSize: 16, textAlign: 'center', marginBottom: 20 },
-  
-  button: {
-    backgroundColor: '#a02226',
-    padding: 10,
-    width: 250,
-    borderRadius: 5,
-    marginVertical: 10,
+  logoContainer: {
+    flexDirection: 'row',
     alignItems: 'center',
   },
-  buttonText: { color: 'white', fontSize: 16, fontWeight: 'bold' },
-
-  logoutButton: {
-    backgroundColor: 'gray',
-    padding: 10,
-    width: 250,
-    borderRadius: 5,
-    marginVertical: 10,
+  logoIcon: {
+    width: 40,
+    height: 40,
+    marginRight: 8,
+  },
+  logoTextContainer: {
+    flexDirection: 'column',
+  },
+  logoText: {
+    color: '#C70039',
+    fontSize: 24,
+    fontWeight: 'bold',
+  },
+  logoSubtext: {
+    color: '#555555',
+    fontSize: 12,
+    marginTop: -5,
+  },
+  navLinksContainer: {
+    flexDirection: 'row',
     alignItems: 'center',
   },
-  logoutButtonText: { color: 'white', fontSize: 16, fontWeight: 'bold' },
+  navLink: {
+    marginHorizontal: 15,
+  },
+  navLinkText: {
+    fontSize: 16,
+    color: '#333333',
+    fontWeight: '500',
+  },
+  profileButton: {
+    marginLeft: 15,
+  },
+  profileIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#DDDDDD',
+  },
+  welcomeContainer: {
+    paddingVertical: 40,
+    paddingHorizontal: 20,
+  },
+  welcomeText: {
+    fontSize: 32,
+    fontWeight: 'bold',
+    color: '#14213D',
+  },
+  brandText: {
+    fontSize: 48,
+    fontWeight: 'bold',
+    color: '#C70039',
+  },
+  cardsContainer: {
+    flexDirection: isSmallDevice ? 'column' : 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 20,
+    gap: 20,
+  },
+  cardJurnal: {
+    backgroundColor: '#14213D',
+    borderRadius: 15,
+    padding: 40,
+    width: isSmallDevice ? '100%' : 250,
+    height: 250,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 5,
+    elevation: 5,
+  },
+  cardSiswa: {
+    backgroundColor: '#C70039',
+    borderRadius: 15,
+    padding: 40,
+    width: isSmallDevice ? '100%' : 250,
+    height: 250,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 5,
+    elevation: 5,
+  },
+  cardIcon: {
+    width: 80,
+    height: 80,
+    tintColor: '#FFF5E0',
+    marginBottom: 20,
+  },
+  cardText: {
+    color: '#FFFFFF',
+    fontSize: 24,
+    fontWeight: 'bold',
+  },
 });
 
 export default DashboardPage;

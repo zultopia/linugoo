@@ -1,93 +1,551 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, Image, StyleSheet, Platform } from 'react-native';
+import { 
+  View, 
+  Text, 
+  TextInput, 
+  TouchableOpacity, 
+  Image, 
+  StyleSheet, 
+  Platform,
+  SafeAreaView,
+  Dimensions,
+  KeyboardAvoidingView,
+  ScrollView,
+  ImageBackground 
+} from 'react-native';
+import Icon from "react-native-vector-icons/Feather";
+import { useRouter } from 'expo-router';
+import Toast from "react-native-toast-message";
+
+const { width, height } = Dimensions.get('window');
+const isSmallDevice = width < 768;
 
 const RegisterPage = () => {
+  const router = useRouter();
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
+  const [name, setName] = useState('');
+  const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [passwordVisible, setPasswordVisible] = useState(false);
+  const [confirmPasswordVisible, setConfirmPasswordVisible] = useState(false);
+  const [error, setError] = useState({
+    username: '',
+    email: '',
+    name: '',
+    phone: '',
+    password: '',
+    confirmPassword: ''
+  });
 
-  const handleRegister = () => {
-    // Validasi dan logika pendaftaran bisa ditambahkan di sini
+  const handleRegister = async () => {
+    // Reset errors
+    setError({
+      username: '',
+      email: '',
+      name: '',
+      phone: '',
+      password: '',
+      confirmPassword: ''
+    });
+
+    // Validate inputs
+    let hasError = false;
+    let newErrors = {
+      username: '',
+      email: '',
+      name: '',
+      phone: '',
+      password: '',
+      confirmPassword: ''
+    };
+
+    if (!username) {
+      newErrors.username = 'Username is required';
+      hasError = true;
+    }
+
+    if (!email) {
+      newErrors.email = 'Email is required';
+      hasError = true;
+    } else if (!/\S+@\S+\.\S+/.test(email)) {
+      newErrors.email = 'Email is invalid';
+      hasError = true;
+    }
+
+    if (!name) {
+      newErrors.name = 'Full name is required';
+      hasError = true;
+    }
+
+    if (!phone) {
+      newErrors.phone = 'Phone number is required';
+      hasError = true;
+    }
+
+    if (!password) {
+      newErrors.password = 'Password is required';
+      hasError = true;
+    } else if (password.length < 6) {
+      newErrors.password = 'Password must be at least 6 characters';
+      hasError = true;
+    }
+
     if (password !== confirmPassword) {
-      alert('Passwords do not match!');
+      newErrors.confirmPassword = 'Passwords do not match';
+      hasError = true;
+    }
+
+    if (hasError) {
+      setError(newErrors);
       return;
     }
-    alert('Registration Successful!');
-    // Proses pendaftaran (misalnya panggil API untuk mendaftar)
+
+    try {
+      // Call the register API endpoint
+      const response = await fetch("http://localhost:5000/auth/register", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          username,
+          email,
+          name,
+          phone,
+          password
+        }),
+      });
+      
+      const data = await response.json();
+      
+      if (response.ok) {
+        // Show success message
+        Toast.show({
+          type: 'success',
+          position: 'top',
+          text1: 'Registration Successful',
+          text2: 'You can now login with your credentials',
+        });
+        
+        // Navigate to login page after successful registration
+        setTimeout(() => {
+          router.replace('/(auth)/login');
+        }, 1500);
+      } else {
+        // Handle API error
+        Toast.show({
+          type: 'error',
+          position: 'top',
+          text1: 'Registration Failed',
+          text2: data.message || 'Please try again later',
+        });
+      }
+    } catch (error) {
+      Toast.show({
+        type: 'error',
+        position: 'top',
+        text1: 'Error',
+        text2: 'Something went wrong. Please try again later.',
+      });
+    }
   };
 
   return (
-    <View style={styles.container}>
-      {/* Left Side */}
-      <View style={styles.leftSide}>
-        <Text style={styles.logo}>lingu<Text style={styles.highlight}>oo</Text></Text>
-        <Image source={require("../../assets/images/owl-academic.png")} style={styles.owlImage} />
-      </View>
-
-      {/* Right Side (Register Form) */}
-      <View style={styles.rightSide}>
-        <View style={styles.registerBox}>
-          <Text style={styles.welcomeText}>Welcome to <Text style={styles.highlight}>linguoo</Text></Text>
-          <Text style={styles.signUpText}>Sign up</Text>
+    <KeyboardAvoidingView
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      style={{ flex: 1 }}
+    >
+      <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
+        <View style={styles.container}>
+          {/* Background */}
+          <View style={styles.backgroundContainer}>
+            <View style={styles.backgroundTop} />
+            <View style={styles.backgroundBottom} />
+          </View>
           
-          {/* Form Inputs */}
-          <TextInput
-            placeholder="Username"
-            value={username}
-            onChangeText={setUsername}
-            style={styles.input}
-          />
-          <TextInput
-            placeholder="Email"
-            value={email}
-            onChangeText={setEmail}
-            keyboardType="email-address"
-            style={styles.input}
-          />
-          <TextInput
-            placeholder="Password"
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry
-            style={styles.input}
-          />
-          <TextInput
-            placeholder="Confirm Password"
-            value={confirmPassword}
-            onChangeText={setConfirmPassword}
-            secureTextEntry
-            style={styles.input}
-          />
-          
-          <TouchableOpacity style={styles.signUpButton} onPress={handleRegister}>
-            <Text style={styles.signUpButtonText}>Sign up</Text>
-          </TouchableOpacity>
+          {/* Left Side */}
+          {!isSmallDevice && (
+            <View style={styles.leftSide}>
+              <View style={styles.leftContent}>
+                <View style={styles.brandContainer}>
+                  <Image 
+                    source={require("../../assets/images/linugoo.svg")} 
+                    style={styles.logoImage} 
+                    resizeMode="contain"
+                  />
+                  <Image 
+                    source={require("../../assets/images/owl-academic.png")} 
+                    style={styles.owlImage} 
+                    resizeMode="contain"
+                  />
+                </View>
+              </View>
+              <Image 
+                source={require("../../assets/images/owl-wood.svg")} 
+                style={styles.bottomOwlImage} 
+                resizeMode="contain"
+              />
+            </View>
+          )}
 
-          <Text style={styles.haveAccountText}>
-            Already have an account? <Text style={styles.loginLink}>Login</Text>
-          </Text>
+          {/* Right Side (Register Form) */}
+          <View style={styles.rightSide}>
+            <View style={styles.registerBox}>
+              {isSmallDevice && (
+                <View style={styles.mobileHeader}>
+                  <Image 
+                    source={require("../../assets/images/linugoo.svg")} 
+                    style={styles.mobileLogoImage} 
+                    resizeMode="contain"
+                  />
+                </View>
+              )}
+              
+              <View style={styles.welcomeHeader}>
+                <View>
+                  <View style={styles.welcomeTextRow}>
+                    <Text style={styles.welcomeText}>Welcome to </Text>
+                    <Image 
+                      source={require("../../assets/images/linugoo.svg")} 
+                      style={styles.welcomeLogoImage} 
+                      resizeMode="contain"
+                    />
+                  </View>
+                  <Text style={styles.signUpText}>Sign up</Text>
+                </View>
+                {!isSmallDevice && (
+                  <Image 
+                    source={require("../../assets/images/owl-fly.png")} 
+                    style={styles.welcomeOwlImage} 
+                    resizeMode="contain"
+                  />
+                )}
+              </View>
+
+              {/* Username Input */}
+              <Text style={styles.inputLabel}>
+                Masukan username anda
+              </Text>
+              <TextInput
+                placeholder="Username"
+                style={styles.input}
+                value={username}
+                onChangeText={setUsername}
+              />
+              {error.username ? (
+                <Text style={styles.errorText}>{error.username}</Text>
+              ) : null}
+
+              {/* Full Name Input */}
+              <Text style={styles.inputLabel}>
+                Masukan nama lengkap anda
+              </Text>
+              <TextInput
+                placeholder="Full Name"
+                style={styles.input}
+                value={name}
+                onChangeText={setName}
+              />
+              {error.name ? (
+                <Text style={styles.errorText}>{error.name}</Text>
+              ) : null}
+
+              {/* Email Input */}
+              <Text style={styles.inputLabel}>
+                Masukan alamat email anda
+              </Text>
+              <TextInput
+                placeholder="Email address"
+                style={styles.input}
+                value={email}
+                onChangeText={setEmail}
+                keyboardType="email-address"
+                autoCapitalize="none"
+              />
+              {error.email ? (
+                <Text style={styles.errorText}>{error.email}</Text>
+              ) : null}
+
+              {/* Phone Input */}
+              <Text style={styles.inputLabel}>
+                Masukan nomor telepon anda
+              </Text>
+              <TextInput
+                placeholder="Phone Number"
+                style={styles.input}
+                value={phone}
+                onChangeText={setPhone}
+                keyboardType="phone-pad"
+              />
+              {error.phone ? (
+                <Text style={styles.errorText}>{error.phone}</Text>
+              ) : null}
+
+              {/* Password Input */}
+              <Text style={styles.inputLabel}>
+                Masukan password anda
+              </Text>
+              <View style={styles.passwordContainer}>
+                <TextInput
+                  placeholder="Password"
+                  secureTextEntry={!passwordVisible}
+                  style={[styles.input, styles.passwordInput]}
+                  value={password}
+                  onChangeText={setPassword}
+                />
+                <TouchableOpacity 
+                  style={styles.eyeIcon} 
+                  onPress={() => setPasswordVisible(!passwordVisible)}
+                >
+                  <Icon 
+                    name={passwordVisible ? "eye-off" : "eye"} 
+                    size={20} 
+                    color="gray" 
+                  />
+                </TouchableOpacity>
+              </View>
+              {error.password ? (
+                <Text style={styles.errorText}>{error.password}</Text>
+              ) : null}
+
+              {/* Confirm Password Input */}
+              <Text style={styles.inputLabel}>
+                Konfirmasi password anda
+              </Text>
+              <View style={styles.passwordContainer}>
+                <TextInput
+                  placeholder="Confirm Password"
+                  secureTextEntry={!confirmPasswordVisible}
+                  style={[styles.input, styles.passwordInput]}
+                  value={confirmPassword}
+                  onChangeText={setConfirmPassword}
+                />
+                <TouchableOpacity 
+                  style={styles.eyeIcon} 
+                  onPress={() => setConfirmPasswordVisible(!confirmPasswordVisible)}
+                >
+                  <Icon 
+                    name={confirmPasswordVisible ? "eye-off" : "eye"} 
+                    size={20} 
+                    color="gray" 
+                  />
+                </TouchableOpacity>
+              </View>
+              {error.confirmPassword ? (
+                <Text style={styles.errorText}>{error.confirmPassword}</Text>
+              ) : null}
+
+              <TouchableOpacity style={styles.signUpButton} onPress={handleRegister}>
+                <Text style={styles.signUpButtonText}>Sign up</Text>
+              </TouchableOpacity>
+
+              <View style={styles.loginContainer}>
+                <Text style={styles.loginText}>
+                  Already have an account? {" "}
+                </Text>
+                <TouchableOpacity onPress={() => router.replace('/(auth)/login')}>
+                  <Text style={styles.loginLink}>Login</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
         </View>
-      </View>
-    </View>
+      </ScrollView>
+      
+      {/* Toast component */}
+      <Toast />
+    </KeyboardAvoidingView>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, flexDirection: 'row', backgroundColor: '#a02226' },
-  leftSide: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 },
-  logo: { fontSize: 50, fontWeight: 'bold', color: 'white' },
-  highlight: { color: '#f8b400' },
-  owlImage: { width: 100, height: 100, marginTop: 10 },
-  rightSide: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#f5f2eb', borderTopLeftRadius: 30, borderBottomLeftRadius: 30 },
-  registerBox: { width: 300, backgroundColor: 'white', padding: 20, borderRadius: 10, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 5 },
-  welcomeText: { fontSize: 20, fontWeight: 'bold', marginBottom: 10, color: 'black' },
-  signUpText: { fontSize: 24, fontWeight: 'bold', marginBottom: 10 },
-  input: { width: '100%', padding: 10, borderWidth: 1, borderColor: 'gray', borderRadius: 5, marginBottom: 10 },
-  signUpButton: { backgroundColor: '#a02226', padding: 10, borderRadius: 5, alignItems: 'center' },
-  signUpButtonText: { color: 'white', fontSize: 16, fontWeight: 'bold' },
-  haveAccountText: { textAlign: 'center', marginTop: 10 },
-  loginLink: { color: 'blue' }
+  container: { 
+    flex: 1, 
+    flexDirection: "row",
+  },
+  backgroundContainer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
+  backgroundTop: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: '50%',
+    backgroundColor: '#C70039', // Red color for top half
+  },
+  backgroundBottom: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: '50%',
+    backgroundColor: '#FFF5E0', // Cream color for bottom half
+  },
+  leftSide: { 
+    flex: 1, 
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: 20,
+    position: "relative",
+    zIndex: 1,
+  },
+  leftContent: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  brandContainer: {
+    flexDirection: "row",
+    alignItems: 'center',
+    justifyContent: "center",
+  },
+  logoImage: {
+    width: 400,
+    height: 120,
+    tintColor: "#FFF5E0",
+  },
+  welcomeTextRow: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  welcomeLogoImage: {
+    width: 70,
+    height: 20,
+    tintColor: "#C70039",
+  },
+  mobileLogoImage: {
+    width: 150,
+    height: 40,
+    tintColor: "#a02226",
+  },
+  owlImage: { 
+    width: 150, 
+    height: 150, 
+    marginTop: 20,
+  },
+  bottomOwlImage: {
+    width: 250,
+    height: 250,
+    alignSelf: "flex-start",
+    marginBottom: 40,
+  },
+  rightSide: { 
+    flex: 1.2, 
+    justifyContent: "center", 
+    alignItems: "center", 
+    padding: 20,
+    zIndex: 1,
+  },
+  mobileHeader: {
+    width: "100%",
+    alignItems: "center",
+    marginBottom: 20,
+  },
+  registerBox: { 
+    width: "100%", 
+    maxWidth: 450,
+    backgroundColor: "white", 
+    padding: 30, 
+    borderRadius: 10, 
+    shadowColor: "#000", 
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1, 
+    shadowRadius: 5,
+    elevation: 3,
+  },
+  welcomeHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 20,
+  },
+  welcomeText: { 
+    fontSize: 16, 
+    marginBottom: 5, 
+    color: "#333",
+    fontFamily: Platform.OS === 'ios' ? 'System' : 'sans-serif',
+    alignSelf: "center",
+  },
+  welcomeOwlImage: {
+    width: 100,
+    height: 100,
+  },
+  signUpText: { 
+    fontSize: 28, 
+    fontWeight: "bold", 
+    color: "#000",
+    fontFamily: Platform.OS === 'ios' ? 'System' : 'sans-serif',
+  },
+  inputLabel: {
+    fontSize: 14,
+    color: "#333",
+    marginBottom: 8,
+  },
+  input: { 
+    width: "100%", 
+    padding: 12,
+    paddingLeft: 15, 
+    borderWidth: 1, 
+    borderColor: "#ddd", 
+    borderRadius: 5, 
+    marginBottom: 20,
+    backgroundColor: "#f9f9f9",
+    fontSize: 16,
+  },
+  passwordContainer: { 
+    width: "100%",
+    position: "relative",
+    marginBottom: 5,
+  },
+  passwordInput: {
+    paddingRight: 45,
+    marginBottom: 5,
+  },
+  eyeIcon: {
+    position: "absolute",
+    right: 15,
+    top: 13,
+  },
+  signUpButton: { 
+    backgroundColor: "#a02226", 
+    padding: 15, 
+    borderRadius: 5, 
+    alignItems: "center",
+    marginTop: 10,
+    marginBottom: 15,
+  },
+  signUpButtonText: { 
+    color: "white", 
+    fontSize: 16, 
+    fontWeight: "bold" 
+  },
+  loginContainer: {
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  loginText: { 
+    color: "#555",
+    fontSize: 14,
+  },
+  loginLink: { 
+    color: "#3498db",
+    fontSize: 14,
+    fontWeight: "500",
+  },
+  errorText: { 
+    color: "red", 
+    fontSize: 12, 
+    marginTop: -15,
+    marginBottom: 15,
+  },
 });
 
 export default RegisterPage;

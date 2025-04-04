@@ -1,21 +1,40 @@
 import React, { useState } from "react";
-import { View, Text, TextInput, TouchableOpacity, Image, StyleSheet, Platform } from "react-native";
+import { 
+  View, 
+  Text, 
+  TextInput, 
+  TouchableOpacity, 
+  Image, 
+  StyleSheet, 
+  Platform,
+  SafeAreaView,
+  Dimensions,
+  KeyboardAvoidingView,
+  ScrollView,
+  ImageBackground
+} from "react-native";
 import Toast from "react-native-toast-message";
 import Icon from "react-native-vector-icons/Feather"; 
 import { useRouter } from 'expo-router';
+// Note: You need to install react-native-svg first
+// npm install react-native-svg
+// or yarn add react-native-svg
+
+const { width, height } = Dimensions.get('window');
+const isSmallDevice = width < 768;
 
 const LoginPage = () => {
   const router = useRouter();
   const [emailOrUsername, setEmailOrUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState({ emailOrUsername: "", password: "" });
-  const [passwordVisible, setPasswordVisible] = useState(false); // Untuk toggle password visibility
+  const [passwordVisible, setPasswordVisible] = useState(false);
 
   const handleLogin = async () => {
-    // Reset error state sebelum login
+    // Reset error state before login
     setError({ emailOrUsername: "", password: "" });
 
-    // Validasi form input
+    // Validate form input
     if (!emailOrUsername || !password) {
       setError({
         emailOrUsername: !emailOrUsername ? "Email/Username is required" : "",
@@ -24,7 +43,7 @@ const LoginPage = () => {
       return;
     }
 
-    // Menyiapkan payload untuk API
+    // Prepare payload for API
     const requestBody = {
       emailOrUsername,
       password,
@@ -50,7 +69,7 @@ const LoginPage = () => {
           text1: "Login Successful",
         });
       } else {
-        // Jika login gagal
+        // If login fails
         Toast.show({
           type: "error",
           position: "top",
@@ -59,7 +78,7 @@ const LoginPage = () => {
         });
       }
     } catch (error) {
-      // Menampilkan toast error jika ada masalah dengan request API
+      // Show error toast for API issues
       Toast.show({
         type: "error",
         position: "top",
@@ -70,95 +89,379 @@ const LoginPage = () => {
   };
 
   return (
-    <View style={styles.container}>
-      {/* Left Side */}
-      <View style={styles.leftSide}>
-        <Text style={styles.logo}>lingu<Text style={styles.highlight}>oo</Text></Text>
-        <Image source={require("../../assets/images/owl-academic.png")} style={styles.owlImage} />
-      </View>
-
-      {/* Right Side (Login Form) */}
-      <View style={styles.rightSide}>
-        <View style={styles.loginBox}>
-          <Text style={styles.welcomeText}>Welcome to <Text style={styles.highlight}>linguoo</Text></Text>
-          <Text style={styles.signInText}>Sign in</Text>
-
-          <TouchableOpacity style={styles.googleButton}>
-            <Image source={require("../../assets/images/google-icon.png")} style={styles.googleIcon} />
-            <Text style={styles.googleButtonText}>Sign in with Google</Text>
-          </TouchableOpacity>
-
-          <View style={styles.separatorContainer}>
-            <View style={styles.separator} />
-            <Text style={styles.separatorText}>atau</Text>
-            <View style={styles.separator} />
+    <KeyboardAvoidingView
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      style={{ flex: 1 }}
+    >
+      <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
+        <View style={styles.container}>
+          {/* Background */}
+          <View style={styles.backgroundContainer}>
+            <View style={styles.backgroundTop} />
+            <View style={styles.backgroundBottom} />
           </View>
+          
+          {/* Left Side */}
+          {!isSmallDevice && (
+            <View style={styles.leftSide}>
+              <View style={styles.leftContent}>
+                <View style={styles.brandContainer}>
+                  <Image 
+                    source={require("../../assets/images/linugoo.svg")} 
+                    style={styles.logoImage} 
+                    resizeMode="contain"
+                  />
+                  <Image 
+                    source={require("../../assets/images/owl-academic.png")} 
+                    style={styles.owlImage} 
+                    resizeMode="contain"
+                  />
+                </View>
+              </View>
+              <Image 
+                source={require("../../assets/images/owl-wood.svg")} 
+                style={styles.bottomOwlImage} 
+                resizeMode="contain"
+              />
+            </View>
+          )}
 
-          {/* Input Username or Email */}
-          <TextInput
-            placeholder="Username or email address"
-            style={styles.input}
-            value={emailOrUsername}
-            onChangeText={setEmailOrUsername}
-          />
-          {error.emailOrUsername ? <Text style={styles.errorText}>{error.emailOrUsername}</Text> : null}
+          {/* Right Side (Login Form) */}
+          <View style={styles.rightSide}>
+            <View style={styles.loginBox}>
+              {isSmallDevice && (
+                <View style={styles.mobileHeader}>
+                  <Image 
+                    source={require("../../assets/images/linugoo.svg")} 
+                    style={styles.mobileLogoImage} 
+                    resizeMode="contain"
+                  />
+                </View>
+              )}
+              
+              <View style={styles.welcomeHeader}>
+                <View>
+                  <View style={styles.welcomeTextRow}>
+                    <Text style={styles.welcomeText}>Welcome to </Text>
+                    <Image 
+                      source={require("../../assets/images/linugoo.svg")} 
+                      style={styles.welcomeLogoImage} 
+                      resizeMode="contain"
+                    />
+                  </View>
+                  <Text style={styles.signInText}>Sign in</Text>
+                </View>
+                {!isSmallDevice && (
+                  <Image 
+                    source={require("../../assets/images/owl-fly.png")} 
+                    style={styles.welcomeOwlImage} 
+                    resizeMode="contain"
+                  />
+                )}
+              </View>
 
-          {/* Input Password */}
-          <View style={styles.passwordContainer}>
-            <TextInput
-              placeholder="Password"
-              secureTextEntry={!passwordVisible}
-              style={styles.input}
-              value={password}
-              onChangeText={setPassword}
-            />
-            <TouchableOpacity onPress={() => setPasswordVisible(!passwordVisible)}>
-              <Icon name={passwordVisible ? "eye-off" : "eye"} size={24} color="gray" />
-            </TouchableOpacity>
+              <TouchableOpacity style={styles.googleButton}>
+                <Image 
+                  source={require("../../assets/images/google-icon.png")} 
+                  style={styles.googleIcon} 
+                />
+                <Text style={styles.googleButtonText}>Sign in with Google</Text>
+              </TouchableOpacity>
+
+              <View style={styles.separatorContainer}>
+                <View style={styles.separator} />
+                <Text style={styles.separatorText}>atau</Text>
+                <View style={styles.separator} />
+              </View>
+
+              <Text style={styles.inputLabel}>
+                Masukan username atau alamat email anda
+              </Text>
+              <TextInput
+                placeholder="Username or email address"
+                style={styles.input}
+                value={emailOrUsername}
+                onChangeText={setEmailOrUsername}
+              />
+              {error.emailOrUsername ? (
+                <Text style={styles.errorText}>{error.emailOrUsername}</Text>
+              ) : null}
+
+              <Text style={styles.inputLabel}>
+                Masukan password anda
+              </Text>
+              <View style={styles.passwordContainer}>
+                <TextInput
+                  placeholder="Password"
+                  secureTextEntry={!passwordVisible}
+                  style={[styles.input, styles.passwordInput]}
+                  value={password}
+                  onChangeText={setPassword}
+                />
+                <TouchableOpacity 
+                  style={styles.eyeIcon} 
+                  onPress={() => setPasswordVisible(!passwordVisible)}
+                >
+                  <Icon 
+                    name={passwordVisible ? "eye-off" : "eye"} 
+                    size={20} 
+                    color="gray" 
+                  />
+                </TouchableOpacity>
+              </View>
+              {error.password ? (
+                <Text style={styles.errorText}>{error.password}</Text>
+              ) : null}
+
+              <Text style={styles.forgotPassword}>Forgot Password</Text>
+
+              <TouchableOpacity style={styles.signInButton} onPress={handleLogin}>
+                <Text style={styles.signInButtonText}>Sign in</Text>
+              </TouchableOpacity>
+
+              <View style={styles.signUpContainer}>
+                <Text style={styles.signUpText}>
+                  No Account? {" "}
+                </Text>
+                <TouchableOpacity onPress={() => router.replace('/register')}>
+                  <Text style={styles.signUpLink}>Sign up</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
           </View>
-          {error.password ? <Text style={styles.errorText}>{error.password}</Text> : null}
-
-          <Text style={styles.forgotPassword}>Forgot Password</Text>
-
-          {/* Sign In Button */}
-          <TouchableOpacity style={styles.signInButton} onPress={handleLogin}>
-            <Text style={styles.signInButtonText}>Sign in</Text>
-          </TouchableOpacity>
-
-          <Text style={styles.signUpText}>No Account? <Text style={styles.signUpLink}>Sign up</Text></Text>
         </View>
-      </View>
-
+      </ScrollView>
+      
       {/* Toast component */}
       <Toast />
-    </View>
+    </KeyboardAvoidingView>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, flexDirection: "row", backgroundColor: "#a02226" },
-  leftSide: { flex: 1, justifyContent: "center", alignItems: "center", padding: 20 },
-  logo: { fontSize: 50, fontWeight: "bold", color: "white" },
-  highlight: { color: "#f8b400" },
-  owlImage: { width: 100, height: 100, marginTop: 10 },
-  rightSide: { flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "#f5f2eb", borderTopLeftRadius: 30, borderBottomLeftRadius: 30 },
-  loginBox: { width: 300, backgroundColor: "white", padding: 20, borderRadius: 10, shadowColor: "#000", shadowOpacity: 0.1, shadowRadius: 5 },
-  welcomeText: { fontSize: 20, fontWeight: "bold", marginBottom: 10, color: "black" },
-  signInText: { fontSize: 24, fontWeight: "bold", marginBottom: 10 },
-  googleButton: { flexDirection: "row", alignItems: "center", justifyContent: "center", backgroundColor: "#eee", padding: 10, borderRadius: 5, marginBottom: 10 },
-  googleIcon: { width: 20, height: 20, marginRight: 10 },
-  googleButtonText: { fontSize: 16 },
-  separatorContainer: { flexDirection: "row", alignItems: "center", marginVertical: 10 },
-  separator: { flex: 1, height: 1, backgroundColor: "gray" },
-  separatorText: { marginHorizontal: 10, color: "gray" },
-  input: { width: "100%", padding: 10, borderWidth: 1, borderColor: "gray", borderRadius: 5, marginBottom: 10 },
-  passwordContainer: { flexDirection: "row", alignItems: "center", marginBottom: 10 },
-  forgotPassword: { alignSelf: "flex-end", color: "blue", marginBottom: 10 },
-  signInButton: { backgroundColor: "#a02226", padding: 10, borderRadius: 5, alignItems: "center" },
-  signInButtonText: { color: "white", fontSize: 16, fontWeight: "bold" },
-  signUpText: { textAlign: "center", marginTop: 10 },
-  signUpLink: { color: "blue" },
-  errorText: { color: "red", fontSize: 12, marginBottom: 10 },
+  container: { 
+    flex: 1, 
+    flexDirection: "row",
+  },
+  backgroundContainer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
+  backgroundTop: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: '50%',
+    backgroundColor: '#C70039', // Red color for top half
+  },
+  backgroundBottom: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: '50%',
+    backgroundColor: '#FFF5E0', // Cream color for bottom half
+  },
+  leftSide: { 
+    flex: 1, 
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: 20,
+    position: "relative",
+  },
+  leftContent: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  brandContainer: {
+    flexDirection: "row",
+    alignItems: 'center',
+    justifyContent: "center",
+  },
+  logoImage: {
+    width: 400,
+    height: 120,
+    tintColor: "#FFF5E0",
+  },
+  welcomeTextRow: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  welcomeLogoImage: {
+    width: 70,
+    height: 20,
+    tintColor: "#C70039",
+  },
+  mobileLogoImage: {
+    width: 150,
+    height: 40,
+    tintColor: "#a02226",
+  },
+  owlImage: { 
+    width: 150, 
+    height: 150, 
+    marginTop: 20,
+  },
+  bottomOwlImage: {
+    width: 250,
+    height: 250,
+    alignSelf: "flex-start",
+    marginBottom: 40,
+  },
+  rightSide: { 
+    flex: 1.2, 
+    justifyContent: "center", 
+    alignItems: "center", 
+    padding: 20,
+  },
+  mobileHeader: {
+    width: "100%",
+    alignItems: "center",
+    marginBottom: 20,
+  },
+  loginBox: { 
+    width: "100%", 
+    maxWidth: 450,
+    backgroundColor: "white", 
+    padding: 30, 
+    borderRadius: 10, 
+    shadowColor: "#000", 
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1, 
+    shadowRadius: 5,
+    elevation: 3,
+  },
+  welcomeHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 20,
+  },
+  welcomeText: { 
+    fontSize: 16, 
+    marginBottom: 5, 
+    color: "#333",
+    fontFamily: Platform.OS === 'ios' ? 'System' : 'sans-serif',
+    alignSelf: "center",
+  },
+  welcomeOwlImage: {
+    width: 100,
+    height: 100,
+  },
+  signInText: { 
+    fontSize: 28, 
+    fontWeight: "bold", 
+    color: "#000",
+    fontFamily: Platform.OS === 'ios' ? 'System' : 'sans-serif',
+  },
+  googleButton: { 
+    flexDirection: "row", 
+    alignItems: "center", 
+    justifyContent: "center", 
+    backgroundColor: "#f7f9fc", 
+    padding: 12, 
+    borderRadius: 5, 
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: "#e1e3e8",
+  },
+  googleIcon: { 
+    width: 20, 
+    height: 20, 
+    marginRight: 10 
+  },
+  googleButtonText: { 
+    fontSize: 16, 
+    color: "#5f6368",
+  },
+  separatorContainer: { 
+    flexDirection: "row", 
+    alignItems: "center", 
+    marginVertical: 20,
+  },
+  separator: { 
+    flex: 1, 
+    height: 1, 
+    backgroundColor: "#e1e3e8" 
+  },
+  separatorText: { 
+    marginHorizontal: 10, 
+    color: "#777",
+    fontSize: 14,
+  },
+  inputLabel: {
+    fontSize: 14,
+    color: "#333",
+    marginBottom: 8,
+  },
+  input: { 
+    width: "100%", 
+    padding: 12,
+    paddingLeft: 15, 
+    borderWidth: 1, 
+    borderColor: "#ddd", 
+    borderRadius: 5, 
+    marginBottom: 20,
+    backgroundColor: "#f9f9f9",
+    fontSize: 16,
+  },
+  passwordContainer: { 
+    width: "100%",
+    position: "relative",
+    marginBottom: 5,
+  },
+  passwordInput: {
+    paddingRight: 45,
+    marginBottom: 5,
+  },
+  eyeIcon: {
+    position: "absolute",
+    right: 15,
+    top: 13,
+  },
+  forgotPassword: { 
+    alignSelf: "flex-end", 
+    color: "#3498db", 
+    marginBottom: 25,
+    fontSize: 14,
+  },
+  signInButton: { 
+    backgroundColor: "#a02226", 
+    padding: 15, 
+    borderRadius: 5, 
+    alignItems: "center",
+    marginBottom: 15,
+  },
+  signInButtonText: { 
+    color: "white", 
+    fontSize: 16, 
+    fontWeight: "bold" 
+  },
+  signUpContainer: {
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  signUpText: { 
+    color: "#555",
+    fontSize: 14,
+  },
+  signUpLink: { 
+    color: "#3498db",
+    fontSize: 14,
+    fontWeight: "500",
+  },
+  errorText: { 
+    color: "red", 
+    fontSize: 12, 
+    marginTop: -15,
+    marginBottom: 15,
+  },
 });
 
 export default LoginPage;
