@@ -34,6 +34,8 @@ export default function RootLayout() {
         <Stack.Screen name="(auth)/login" options={{ headerShown: false }} />
         <Stack.Screen name="(auth)/register" options={{ headerShown: false }} />
         <Stack.Screen name="(teacher)/dashboard" options={{ headerShown: false }} />
+        <Stack.Screen name="(games)/base" options={{ headerShown: false }} />
+        <Stack.Screen name="(games)/detail/[id]/page" options={{ headerShown: true, title: "Detail Page" }} />
         <Stack.Screen name="+not-found" />
       </Stack>
       <StatusBar style="auto" />
