@@ -13,6 +13,8 @@ import {
   StatusBar
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import { useRouter } from 'expo-router';
+import { useAuth } from '../context/AuthContext';
 
 // Mendapatkan dimensi layar
 const windowWidth = Dimensions.get('window').width;
@@ -54,6 +56,25 @@ const classMarkers = [
 
 export default function GameMapPage() {
   const navigation = useNavigation<any>();
+  const router = useRouter();
+  const { logout } = useAuth();
+
+  const handleProfilePress = () => {
+    router.push('/(tabs)/profile');
+  };
+  
+  // Handle logout
+  const handleLogoutPress = async () => {
+    try {
+      // Panggil fungsi logout dari AuthContext
+      await logout();
+      // Navigasi ke halaman login dilakukan di dalam fungsi logout
+    } catch (error) {
+      console.error('Logout error:', error);
+      // Jika ada error, tetap coba navigasi ke login
+      router.replace('/(auth)/login');
+    }
+  };
   
   // State untuk menampilkan popup informasi kelas
   const [selectedClass, setSelectedClass] = useState<number | null>(null);
@@ -62,7 +83,7 @@ export default function GameMapPage() {
   const handleMarkerPress = (classId: number) => {
     if (selectedClass === classId) {
       // Jika marker yang sama diklik lagi, arahkan ke halaman kelas
-      navigation.navigate('ClassDetail', { id: classId.toString() } as never);
+      router.push(`/(games)/detail/${classId}/page`);
     } else {
       // Tampilkan informasi kelas
       setSelectedClass(classId);
@@ -76,7 +97,7 @@ export default function GameMapPage() {
   
   // Navigasi ke halaman detail kelas
   const navigateToClassDetail = (classId: number) => {
-    navigation.navigate('ClassDetail', { id: classId.toString() } as never);
+    router.push(`/(games)/detail/${classId}/page`);
   };
   
   // Render marker kelas pada peta
@@ -128,6 +149,30 @@ export default function GameMapPage() {
             <Text style={styles.logoTitle}>linugoo</Text>
             <Text style={styles.logoSubtitle}>untuk siswa</Text>
           </View>
+        </View>
+
+        <View style={styles.navIcons}>
+          <TouchableOpacity 
+            style={styles.iconButton} 
+            onPress={handleProfilePress}
+          >
+            <Image 
+              source={require('../../assets/images/profile.png')} 
+              style={styles.icon} 
+              resizeMode="contain"
+            />
+          </TouchableOpacity>
+          
+          <TouchableOpacity 
+            style={styles.iconButton} 
+            onPress={handleLogoutPress}
+          >
+            <Image 
+              source={require('../../assets/images/logout.png')} 
+              style={styles.icon} 
+              resizeMode="contain"
+            />
+          </TouchableOpacity>
         </View>
       </View>
       
@@ -181,6 +226,7 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between', // Memastikan logo di kiri dan icon di kanan
     paddingHorizontal: 16,
     paddingTop: StatusBar.currentHeight || 40,
     paddingBottom: 10,
@@ -205,6 +251,18 @@ const styles = StyleSheet.create({
   logoSubtitle: {
     fontSize: 16,
     color: '#E30425',
+  },
+  navIcons: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  iconButton: {
+    marginLeft: 16,
+    padding: 6,
+  },
+  icon: {
+    width: 24,
+    height: 24,
   },
   mapBackground: {
     flex: 1,

@@ -3,7 +3,7 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const User = require("../models/user.model");
 
-const register = async (username, email, name, phone, password) => {
+const register = async (username, email, name, phone, password, role = "Siswa") => {
   const usersRef = db.collection("users");
 
   // Cek apakah username atau email sudah terdaftar
@@ -26,11 +26,12 @@ const register = async (username, email, name, phone, password) => {
     email,
     name,
     phone,
-    hashedPassword
+    hashedPassword,
+    role // Tambahkan role saat membuat User baru
   );
 
   await newUserRef.set({ ...newUser });
-  return { id: newUserRef.id, username, email, name, phone };
+  return { id: newUserRef.id, username, email, name, phone, role };
 };
 
 const login = async (emailOrUsername, password) => {
@@ -52,11 +53,44 @@ const login = async (emailOrUsername, password) => {
     throw new Error("Password salah!");
   }
 
-  const token = jwt.sign({ userId, email: userData.email }, process.env.JWT_SECRET, {
-    expiresIn: "1h",
-  });
+  const token = jwt.sign(
+    { 
+      userId, 
+      email: userData.email,
+      role: userData.role 
+    }, 
+    process.env.JWT_SECRET, 
+    {
+      expiresIn: "1h",
+    }
+  );
 
-  return { token, user: { id: userId, email: userData.email, username: userData.username } };
+  return { 
+    token, 
+    user: { 
+      id: userId, 
+      email: userData.email, 
+      username: userData.username,
+      role: userData.role
+    } 
+  };
 };
 
-module.exports = { register, login };
+const logout = async (userId, token) => {
+  try {
+    const blacklistRef = db.collection("token_blacklist");
+    await blacklistRef.add({
+      token,
+      userId,
+      blacklistedAt: new Date(),
+      expiresAt: new Date(Date.now() + 3600 * 1000) 
+    });
+    
+    return { success: true };
+  } catch (error) {
+    console.error("Error saat logout:", error);
+    throw new Error("Gagal melakukan logout");
+  }
+};
+
+module.exports = { register, login, logout };

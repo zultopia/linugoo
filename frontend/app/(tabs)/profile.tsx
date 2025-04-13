@@ -1,675 +1,574 @@
-import React, { useState, useEffect } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
+'use client';
+
+import React, { useEffect, useState } from 'react';
+import { 
+  View, 
+  Text, 
+  StyleSheet, 
+  TouchableOpacity, 
   Image,
-  TouchableOpacity,
+  SafeAreaView,
+  StatusBar,
   ScrollView,
-  TextInput,
-  Platform,
-  KeyboardAvoidingView,
   ActivityIndicator,
   Dimensions,
+  Platform
 } from 'react-native';
-import { StatusBar } from 'expo-status-bar';
-import Icon from "react-native-vector-icons/Feather";
-import { MaterialIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import Toast from "react-native-toast-message";
+import { useAuth } from '../context/AuthContext';
 
 const { width } = Dimensions.get('window');
 const isSmallDevice = width < 768;
 
-const ProfilePage = () => {
+// Interface for profile data
+interface ProfileData {
+  id: string;
+  username: string;
+  email: string;
+  name: string;
+  phone: string;
+  role: string;
+}
+
+export default function ProfilePage() {
   const router = useRouter();
-  // Define interfaces for the types
-  interface CourseData {
-    id: number;
-    name: string;
-    progress: number;
-  }
-
-  interface UserDataType {
-    username: string;
-    name: string;
-    email: string;
-    phone: string;
-    avatarUrl: string | null;
-    role: string;
-    joinDate: string;
-    lastActive: string;
-    language: string;
-    courses: CourseData[];
-  }
-
-  const [isEditing, setIsEditing] = useState(false);
+  const { token, logout, isLoading: authLoading } = useAuth();
+  const [profileData, setProfileData] = useState<ProfileData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [userData, setUserData] = useState<UserDataType>({
-    username: '',
-    name: '',
-    email: '',
-    phone: '',
-    avatarUrl: null,
-    role: 'Student',
-    joinDate: '',
-    lastActive: '',
-    language: 'English',
-    courses: []
-  });
+  const [error, setError] = useState<string | null>(null);
 
-  interface FormDataType {
-    name: string;
-    email: string;
-    phone: string;
-  }
-
-  const [formData, setFormData] = useState<FormDataType>({
-    name: '',
-    email: '',
-    phone: '',
-  });
-
+  // Fetch profile data
   useEffect(() => {
-    // Simulate fetching user data
-    setTimeout(() => {
-      const mockUserData: UserDataType = {
-        username: 'marzuli',
-        name: 'Marzuli Suhada',
-        email: 'marzuli@example.com',
-        phone: '08123456789',
-        avatarUrl: null,
-        role: 'Student',
-        joinDate: 'April 5, 2025',
-        lastActive: 'Today',
-        language: 'English, Indonesian',
-        courses: [
-          { id: 1, name: 'Basic English Grammar', progress: 78 },
-          { id: 2, name: 'Intermediate Vocabulary', progress: 45 },
-          { id: 3, name: 'Conversational Spanish', progress: 12 },
-        ]
-      };
-
-      setUserData(mockUserData);
-      setFormData({
-        name: mockUserData.name,
-        email: mockUserData.email,
-        phone: mockUserData.phone,
-      });
-      setIsLoading(false);
-    }, 1000);
-  }, []);
-
-  const handleEdit = () => {
-    setIsEditing(true);
-  };
-
-  const handleSave = async () => {
-    setIsLoading(true);
-    
-    try {
-      // This is where you would call your API to update the user profile
-      // const response = await fetch(`http://localhost:5000/user/profile`, {
-      //   method: 'PUT',
-      //   headers: {
-      //     'Content-Type': 'application/json',
-      //     'Authorization': `Bearer ${yourAuthToken}`,
-      //   },
-      //   body: JSON.stringify(formData),
-      // });
-
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 800));
+    const fetchProfile = async () => {
+      if (!token) return;
       
-      // Update local user data
-      setUserData(prev => ({
-        ...prev,
-        name: formData.name,
-        email: formData.email,
-        phone: formData.phone,
-      }));
-
-      Toast.show({
-        type: 'success',
-        position: 'top',
-        text1: 'Profile Updated',
-        text2: 'Your profile has been successfully updated',
-      });
-
-      setIsEditing(false);
-    } catch (error) {
-      Toast.show({
-        type: 'error',
-        position: 'top',
-        text1: 'Update Failed',
-        text2: 'There was an error updating your profile',
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleCancel = () => {
-    // Reset form data to original values
-    setFormData({
-      name: userData.name,
-      email: userData.email,
-      phone: userData.phone,
-    });
-    setIsEditing(false);
-  };
-
+      setIsLoading(true);
+      try {
+        const response = await fetch('http://localhost:5000/users/profile', {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        });
+        
+        if (!response.ok) {
+          throw new Error('Failed to fetch profile data');
+        }
+        
+        const data = await response.json();
+        setProfileData(data.user);
+      } catch (error) {
+        console.error('Error fetching profile:', error);
+        setError('Failed to load profile. Please try again later.');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchProfile();
+  }, [token]);
+  
+  // Handle logout
   const handleLogout = async () => {
-    setIsLoading(true);
-    
     try {
-      // Call logout API
-      // await fetch('http://localhost:5000/auth/logout', {
-      //   method: 'POST',
-      //   headers: {
-      //     'Authorization': `Bearer ${yourAuthToken}`,
-      //   },
-      // });
-      
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      // Navigate to login page
-      router.replace('/(auth)/login');
+      await logout();
+      // Navigation is handled in logout function
     } catch (error) {
-      Toast.show({
-        type: 'error',
-        position: 'top',
-        text1: 'Logout Failed',
-        text2: 'There was an error logging out',
-      });
-      setIsLoading(false);
+      console.error('Logout error:', error);
+      router.replace('/(auth)/login');
     }
   };
 
-  if (isLoading) {
+  // Handle navigation
+  const handleNavigation = (route: string) => {
+    if (profileData?.role === 'Guru') {
+      if (route === 'dashboard') {
+        router.push('/(teacher)/dashboard');
+      } else if (route === 'jurnal') {
+        router.push('/(teacher)/jurnal');
+      } else if (route === 'data-siswa') {
+        router.push('/(teacher)/data-siswa');
+      }
+    } else {
+      router.push('/(games)/base');
+    }
+  };
+
+  if (authLoading || isLoading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#C70039" />
+        <ActivityIndicator size="large" color={profileData?.role === 'Guru' ? '#C70039' : '#E30425'} />
         <Text style={styles.loadingText}>Loading...</Text>
       </View>
     );
   }
-
+  
+  const brandColor = profileData?.role === 'Guru' ? '#C70039' : '#E30425';
+  
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-      style={{ flex: 1 }}
-    >
-      <StatusBar style="dark" />
-      <ScrollView style={styles.container}>
-        {/* Header Section */}
-        <View style={styles.header}>
-          <Text style={styles.headerTitle}>Your Profile</Text>
-          {!isEditing ? (
-            <TouchableOpacity onPress={handleEdit} style={styles.editButton}>
-              <Icon name="edit-2" size={20} color="#555" />
-              <Text style={styles.editButtonText}>Edit</Text>
-            </TouchableOpacity>
-          ) : (
-            <View style={styles.editActions}>
-              <TouchableOpacity onPress={handleCancel} style={styles.cancelButton}>
-                <Text style={styles.cancelButtonText}>Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity onPress={handleSave} style={styles.saveButton}>
-                <Text style={styles.saveButtonText}>Save</Text>
-              </TouchableOpacity>
-            </View>
-          )}
+    <SafeAreaView style={styles.container}>
+      <StatusBar barStyle="dark-content" backgroundColor="transparent" translucent />
+      
+      {/* Navbar - Similar to Dashboard for consistency */}
+      <View style={[styles.navbar, { backgroundColor: profileData?.role === 'Guru' ? '#FFFFFF' : '#FFFFFF' }]}>
+        <View style={styles.logoContainer}>
+          <Image
+            source={profileData?.role === 'Guru' 
+              ? require('../../assets/images/owl-academic.png')
+              : require('../../assets/images/lino.png')}
+            style={styles.logoIcon}
+            resizeMode="contain"
+          />
+          <View style={styles.logoTextContainer}>
+            <Text style={[styles.logoText, { color: brandColor }]}>linugoo</Text>
+            <Text style={styles.logoSubtext}>
+              {profileData?.role === 'Guru' ? 'untuk guru' : 'untuk siswa'}
+            </Text>
+          </View>
         </View>
-        
-        {/* Profile Card */}
-        <View style={styles.profileCard}>
-          <View style={styles.profileHeader}>
-            {userData.avatarUrl ? (
-              <Image source={{ uri: userData.avatarUrl }} style={styles.avatar} />
-            ) : (
-              <View style={styles.avatarPlaceholder}>
-                <Text style={styles.avatarInitials}>
-                  {userData.name.split(' ').map(n => n[0]).join('').toUpperCase()}
-                </Text>
+
+        {profileData?.role === 'Guru' ? (
+          <View style={styles.navLinksContainer}>
+            <TouchableOpacity 
+              style={styles.navLink}
+              onPress={() => handleNavigation('dashboard')}
+            >
+              <Text style={styles.navLinkText}>Dashboard</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
+              style={styles.navLink}
+              onPress={() => handleNavigation('jurnal')}
+            >
+              <Text style={styles.navLinkText}>Jurnal</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
+              style={styles.navLink}
+              onPress={() => handleNavigation('data-siswa')}
+            >
+              <Text style={styles.navLinkText}>Data Siswa</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
+              style={styles.logoutButtonNav}
+              onPress={handleLogout}
+            >
+              <Image 
+                source={require('../../assets/images/logout.png')} 
+                style={styles.iconButton} 
+                resizeMode="contain"
+              />
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <View style={styles.navIcons}>
+            <TouchableOpacity 
+              style={styles.iconButton} 
+              onPress={() => handleNavigation('home')}
+            >
+              <Image 
+                source={require('../../assets/images/lino.png')} 
+                style={styles.icon} 
+                resizeMode="contain"
+              />
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
+              style={styles.iconButton} 
+              onPress={handleLogout}
+            >
+              <Image 
+                source={require('../../assets/images/logout.png')} 
+                style={styles.icon} 
+                resizeMode="contain"
+              />
+            </TouchableOpacity>
+          </View>
+        )}
+      </View>
+      
+      <ScrollView 
+        style={[
+          styles.scrollView, 
+          { backgroundColor: profileData?.role === 'Guru' ? '#FFF5E0' : '#E1F5F5' }
+        ]}
+        contentContainerStyle={styles.scrollContent}
+      >
+        {error ? (
+          <View style={styles.errorContainer}>
+            <Text style={styles.errorText}>{error}</Text>
+            <TouchableOpacity 
+              style={[styles.retryButton, { backgroundColor: brandColor }]}
+              onPress={() => router.reload()}
+            >
+              <Text style={styles.retryButtonText}>Coba Lagi</Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <>
+            {/* Profile Header */}
+            <View style={styles.profileHeader}>
+              <View style={styles.profileAvatarContainer}>
+                <View style={[styles.profileAvatar, { backgroundColor: brandColor }]}>
+                  <Text style={styles.profileInitials}>
+                    {profileData?.name ? profileData.name.substring(0, 1).toUpperCase() : '?'}
+                  </Text>
+                </View>
+              </View>
+              <Text style={styles.profileName}>{profileData?.name || 'User Name'}</Text>
+              <Text style={styles.profileRole}>{profileData?.role || 'Role'}</Text>
+            </View>
+            
+            {/* Profile Info Card */}
+            <View style={styles.cardContainer}>
+              <View style={styles.card}>
+                <Text style={styles.cardTitle}>Informasi Pribadi</Text>
+                
+                <View style={styles.infoItem}>
+                  <Text style={styles.infoLabel}>Username</Text>
+                  <Text style={styles.infoValue}>{profileData?.username || '-'}</Text>
+                </View>
+                
+                <View style={styles.infoItem}>
+                  <Text style={styles.infoLabel}>Email</Text>
+                  <Text style={styles.infoValue}>{profileData?.email || '-'}</Text>
+                </View>
+                
+                <View style={styles.infoItem}>
+                  <Text style={styles.infoLabel}>Nomor Telepon</Text>
+                  <Text style={styles.infoValue}>{profileData?.phone || '-'}</Text>
+                </View>
+              </View>
+            </View>
+            
+            {/* Stats for Students */}
+            {profileData?.role === 'Siswa' && (
+              <View style={styles.cardContainer}>
+                <View style={styles.card}>
+                  <Text style={styles.cardTitle}>Statistik Pembelajaran</Text>
+                  
+                  <View style={styles.statsContainer}>
+                    <View style={styles.statItem}>
+                      <Text style={[styles.statValue, { color: brandColor }]}>12</Text>
+                      <Text style={styles.statLabel}>Pelajaran Selesai</Text>
+                    </View>
+                    
+                    <View style={styles.statItem}>
+                      <Text style={[styles.statValue, { color: brandColor }]}>86%</Text>
+                      <Text style={styles.statLabel}>Rata-rata Nilai</Text>
+                    </View>
+                    
+                    <View style={styles.statItem}>
+                      <Text style={[styles.statValue, { color: brandColor }]}>5</Text>
+                      <Text style={styles.statLabel}>Penghargaan</Text>
+                    </View>
+                  </View>
+                </View>
               </View>
             )}
             
-            <View style={styles.profileInfo}>
-              {isEditing ? (
-                <TextInput
-                  style={styles.inputName}
-                  value={formData.name}
-                  onChangeText={(text) => setFormData(prev => ({ ...prev, name: text }))}
-                  placeholder="Full Name"
-                />
-              ) : (
-                <Text style={styles.userName}>{userData.name}</Text>
-              )}
-              <Text style={styles.userRole}>{userData.role}</Text>
-              <View style={styles.usernameBadge}>
-                <Text style={styles.usernameText}>@{userData.username}</Text>
+            {/* Stats for Teachers */}
+            {profileData?.role === 'Guru' && (
+              <View style={styles.cardContainer}>
+                <View style={styles.card}>
+                  <Text style={styles.cardTitle}>Statistik Mengajar</Text>
+                  
+                  <View style={styles.statsContainer}>
+                    <View style={styles.statItem}>
+                      <Text style={[styles.statValue, { color: brandColor }]}>25</Text>
+                      <Text style={styles.statLabel}>Total Siswa</Text>
+                    </View>
+                    
+                    <View style={styles.statItem}>
+                      <Text style={[styles.statValue, { color: brandColor }]}>18</Text>
+                      <Text style={styles.statLabel}>Aktif Bulan Ini</Text>
+                    </View>
+                    
+                    <View style={styles.statItem}>
+                      <Text style={[styles.statValue, { color: brandColor }]}>8</Text>
+                      <Text style={styles.statLabel}>Jumlah Kelas</Text>
+                    </View>
+                  </View>
+                </View>
               </View>
-            </View>
-          </View>
-          
-          <View style={styles.infoSection}>
-            <View style={styles.infoRow}>
-              <View style={styles.infoIcon}>
-                <Icon name="mail" size={18} color="#C70039" />
-              </View>
-              {isEditing ? (
-                <TextInput
-                  style={styles.infoInput}
-                  value={formData.email}
-                  onChangeText={(text) => setFormData(prev => ({ ...prev, email: text }))}
-                  placeholder="Email"
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                />
-              ) : (
-                <Text style={styles.infoText}>{userData.email}</Text>
-              )}
-            </View>
+            )}
             
-            <View style={styles.infoRow}>
-              <View style={styles.infoIcon}>
-                <Icon name="phone" size={18} color="#C70039" />
-              </View>
-              {isEditing ? (
-                <TextInput
-                  style={styles.infoInput}
-                  value={formData.phone}
-                  onChangeText={(text) => setFormData(prev => ({ ...prev, phone: text }))}
-                  placeholder="Phone"
-                  keyboardType="phone-pad"
-                />
-              ) : (
-                <Text style={styles.infoText}>{userData.phone}</Text>
-              )}
-            </View>
-            
-            <View style={styles.infoRow}>
-              <View style={styles.infoIcon}>
-                <Icon name="calendar" size={18} color="#C70039" />
-              </View>
-              <Text style={styles.infoText}>Joined {userData.joinDate}</Text>
-            </View>
-            
-            <View style={styles.infoRow}>
-              <View style={styles.infoIcon}>
-                <Icon name="globe" size={18} color="#C70039" />
-              </View>
-              <Text style={styles.infoText}>Languages: {userData.language}</Text>
-            </View>
-          </View>
-        </View>
-        
-        {/* Learning Progress */}
-        <View style={styles.sectionCard}>
-          <Text style={styles.sectionTitle}>Learning Progress</Text>
-          
-          {userData.courses.map((course) => (
-            <View key={course.id} style={styles.courseItem}>
-              <Text style={styles.courseName}>{course.name}</Text>
-              <View style={styles.progressContainer}>
-                <View 
-                  style={[
-                    styles.progressBar, 
-                    {width: `${course.progress}%`}
-                  ]}
-                />
-                <Text style={styles.progressText}>{course.progress}%</Text>
+            {/* Settings Card */}
+            <View style={styles.cardContainer}>
+              <View style={styles.card}>
+                <Text style={styles.cardTitle}>Pengaturan</Text>
+                
+                <TouchableOpacity style={styles.settingItem}>
+                  <Image 
+                    source={require('../../assets/images/profile.png')} 
+                    style={styles.settingIcon} 
+                  />
+                  <Text style={styles.settingText}>Ubah Profil</Text>
+                </TouchableOpacity>
+                
+                <TouchableOpacity style={styles.settingItem}>
+                  <Image 
+                    source={require('../../assets/images/lock.png')} 
+                    style={styles.settingIcon} 
+                  />
+                  <Text style={styles.settingText}>Ubah Password</Text>
+                </TouchableOpacity>
+                
+                <TouchableOpacity style={styles.settingItem}>
+                  <Image 
+                    source={require('../../assets/images/help.png')} 
+                    style={styles.settingIcon} 
+                  />
+                  <Text style={styles.settingText}>Bantuan</Text>
+                </TouchableOpacity>
+                
+                <TouchableOpacity 
+                  style={[styles.settingItem, styles.logoutItem]}
+                  onPress={handleLogout}
+                >
+                  <Image 
+                    source={require('../../assets/images/logout.png')} 
+                    style={styles.settingIcon} 
+                  />
+                  <Text style={[styles.settingText, { color: brandColor }]}>Keluar</Text>
+                </TouchableOpacity>
               </View>
             </View>
-          ))}
-          
-          <TouchableOpacity style={styles.viewAllButton}>
-            <Text style={styles.viewAllText}>View All Courses</Text>
-            <Icon name="chevron-right" size={16} color="#C70039" />
-          </TouchableOpacity>
-        </View>
-        
-        {/* Achievements */}
-        <View style={styles.sectionCard}>
-          <Text style={styles.sectionTitle}>Achievements</Text>
-          
-          <View style={styles.achievementsGrid}>
-            {/* Achievement Item */}
-            <View style={styles.achievementItem}>
-              <View style={styles.achievementBadge}>
-                <MaterialIcons name="star" size={24} color="#FFD700" />
-              </View>
-              <Text style={styles.achievementName}>Level 1</Text>
-              <Text style={styles.achievementDesc}>Completed first lesson</Text>
-            </View>
-            
-            {/* Achievement Item */}
-            <View style={styles.achievementItem}>
-              <View style={styles.achievementBadge}>
-                <MaterialIcons name="timer" size={24} color="#FFD700" />
-              </View>
-              <Text style={styles.achievementName}>Quick Learner</Text>
-              <Text style={styles.achievementDesc}>Practice 5 days in a row</Text>
-            </View>
-            
-            {/* Achievement Item (Locked) */}
-            <View style={[styles.achievementItem, styles.lockedAchievement]}>
-              <View style={[styles.achievementBadge, styles.lockedBadge]}>
-                <MaterialIcons name="lock" size={24} color="#AAA" />
-              </View>
-              <Text style={styles.lockedText}>Vocabulary Master</Text>
-              <Text style={styles.achievementDesc}>Learn 100 new words</Text>
-            </View>
-          </View>
-        </View>
-        
-        {/* Logout Button */}
-        <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-          <Icon name="log-out" size={20} color="#FFF" />
-          <Text style={styles.logoutText}>Log Out</Text>
-        </TouchableOpacity>
-        
-        <View style={styles.footerSpace} />
+          </>
+        )}
       </ScrollView>
-      <Toast />
-    </KeyboardAvoidingView>
+    </SafeAreaView>
   );
-};
+}
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F5F5F5',
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#F5F5F5',
   },
   loadingText: {
     marginTop: 10,
     fontSize: 16,
     color: '#555',
   },
-  header: {
+  errorContainer: {
+    padding: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  errorText: {
+    fontSize: 16,
+    color: '#555',
+    textAlign: 'center',
+    marginBottom: 15,
+  },
+  retryButton: {
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+  },
+  retryButtonText: {
+    color: 'white',
+    fontWeight: 'bold',
+  },
+  navbar: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 20,
-    paddingVertical: 15,
-    backgroundColor: '#FFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#EEE',
+    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight || 20 : 20,
+    paddingBottom: 10,
+    backgroundColor: '#FFFFFF',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 3,
+      },
+      android: {
+        elevation: 3,
+      },
+      web: {
+        boxShadow: '0px 2px 3px rgba(0, 0, 0, 0.1)',
+      },
+    }),
+    zIndex: 10,
   },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#333',
-  },
-  editButton: {
+  logoContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 8,
-    borderRadius: 6,
-    backgroundColor: '#F0F0F0',
   },
-  editButtonText: {
-    marginLeft: 5,
-    color: '#555',
-    fontWeight: '500',
+  logoIcon: {
+    width: 40,
+    height: 40,
+    marginRight: 8,
   },
-  editActions: {
+  logoTextContainer: {
+    flexDirection: 'column',
+  },
+  logoText: {
+    fontSize: 24,
+    fontWeight: 'bold',
+  },
+  logoSubtext: {
+    color: '#555555',
+    fontSize: 12,
+    marginTop: -5,
+  },
+  navLinksContainer: {
     flexDirection: 'row',
+    alignItems: 'center',
   },
-  cancelButton: {
-    padding: 8,
-    marginRight: 10,
-    borderRadius: 6,
-    backgroundColor: '#F0F0F0',
+  navLink: {
+    marginHorizontal: isSmallDevice ? 8 : 15,
   },
-  cancelButtonText: {
-    color: '#555',
-  },
-  saveButton: {
-    padding: 8,
-    borderRadius: 6,
-    backgroundColor: '#C70039',
-  },
-  saveButtonText: {
-    color: '#FFF',
+  navLinkText: {
+    fontSize: isSmallDevice ? 14 : 16,
+    color: '#333333',
     fontWeight: '500',
   },
-  profileCard: {
-    backgroundColor: '#FFF',
-    borderRadius: 10,
-    marginHorizontal: 16,
-    marginTop: 16,
+  logoutButtonNav: {
+    marginLeft: isSmallDevice ? 8 : 15,
+    padding: 6,
+    borderRadius: 8,
+    backgroundColor: '#f8d7da',
+  },
+  navIcons: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  iconButton: {
+    width: 24,
+    height: 24,
+  },
+  icon: {
+    width: 24,
+    height: 24,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
     padding: 16,
-    shadowColor: '#000',
-    shadowOpacity: 0.05,
-    shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 8,
-    elevation: 2,
+    paddingBottom: 40,
   },
   profileHeader: {
-    flexDirection: isSmallDevice ? 'column' : 'row',
     alignItems: 'center',
     marginBottom: 20,
   },
-  avatar: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    marginRight: isSmallDevice ? 0 : 20,
-    marginBottom: isSmallDevice ? 15 : 0,
+  profileAvatarContainer: {
+    marginBottom: 15,
   },
-  avatarPlaceholder: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: '#C70039',
+  profileAvatar: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: isSmallDevice ? 0 : 20,
-    marginBottom: isSmallDevice ? 15 : 0,
+    marginBottom: 10,
   },
-  avatarInitials: {
-    fontSize: 28,
+  profileInitials: {
+    fontSize: 48,
     fontWeight: 'bold',
-    color: '#FFF',
+    color: '#FFFFFF',
   },
-  profileInfo: {
-    flex: 1,
-    alignItems: isSmallDevice ? 'center' : 'flex-start',
-  },
-  userName: {
-    fontSize: 22,
+  profileName: {
+    fontSize: 24,
     fontWeight: 'bold',
     color: '#333',
-    marginBottom: 4,
+    marginBottom: 5,
   },
-  userRole: {
-    fontSize: 14,
-    color: '#777',
-    marginBottom: 8,
+  profileRole: {
+    fontSize: 16,
+    color: '#666',
   },
-  usernameBadge: {
-    backgroundColor: '#F0F0F0',
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 15,
+  cardContainer: {
+    marginBottom: 20,
   },
-  usernameText: {
-    fontSize: 13,
-    color: '#555',
+  card: {
+    backgroundColor: 'white',
+    borderRadius: 12,
+    padding: 20,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+      },
+      android: {
+        elevation: 3,
+      },
+      web: {
+        boxShadow: '0px 2px 4px rgba(0, 0, 0, 0.1)',
+      },
+    }),
   },
-  infoSection: {
-    borderTopWidth: 1,
-    borderTopColor: '#EEE',
-    paddingTop: 15,
-  },
-  infoRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  infoIcon: {
-    width: 30,
-    alignItems: 'center',
-    marginRight: 10,
-  },
-  infoText: {
-    fontSize: 15,
-    color: '#333',
-    flex: 1,
-  },
-  inputName: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#333',
-    borderWidth: 1,
-    borderColor: '#DDD',
-    borderRadius: 5,
-    padding: 8,
-    width: '100%',
-    marginBottom: 4,
-  },
-  infoInput: {
-    borderWidth: 1,
-    borderColor: '#DDD',
-    borderRadius: 5,
-    padding: 8,
-    flex: 1,
-    fontSize: 15,
-  },
-  sectionCard: {
-    backgroundColor: '#FFF',
-    borderRadius: 10,
-    marginHorizontal: 16,
-    marginTop: 16,
-    padding: 16,
-    shadowColor: '#000',
-    shadowOpacity: 0.05,
-    shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  sectionTitle: {
+  cardTitle: {
     fontSize: 18,
     fontWeight: 'bold',
     color: '#333',
     marginBottom: 15,
   },
-  courseItem: {
-    marginBottom: 15,
+  infoItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
   },
-  courseName: {
-    fontSize: 15,
+  infoLabel: {
+    fontSize: 16,
+    color: '#555',
+  },
+  infoValue: {
+    fontSize: 16,
     color: '#333',
-    marginBottom: 6,
-  },
-  progressContainer: {
-    height: 20,
-    backgroundColor: '#F0F0F0',
-    borderRadius: 10,
-    overflow: 'hidden',
-    position: 'relative',
-  },
-  progressBar: {
-    height: '100%',
-    backgroundColor: '#C70039',
-    borderRadius: 10,
-  },
-  progressText: {
-    position: 'absolute',
-    right: 10,
-    top: 2,
-    fontSize: 12,
-    color: '#FFF',
-    fontWeight: 'bold',
-  },
-  viewAllButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 10,
-    paddingVertical: 10,
-    borderTopWidth: 1,
-    borderTopColor: '#EEE',
-  },
-  viewAllText: {
-    color: '#C70039',
     fontWeight: '500',
-    marginRight: 5,
   },
-  achievementsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+  statsContainer: {
+    flexDirection: isSmallDevice ? 'column' : 'row',
     justifyContent: 'space-between',
   },
-  achievementItem: {
-    backgroundColor: '#F9F9F9',
-    borderRadius: 8,
-    padding: 12,
-    width: '31%',
+  statItem: {
     alignItems: 'center',
-    marginBottom: 10,
+    padding: 15,
+    marginBottom: isSmallDevice ? 10 : 0,
   },
-  lockedAchievement: {
-    opacity: 0.7,
+  statValue: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    marginBottom: 5,
   },
-  achievementBadge: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: '#FFF5E0',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  lockedBadge: {
-    backgroundColor: '#F0F0F0',
-  },
-  achievementName: {
+  statLabel: {
     fontSize: 14,
-    fontWeight: '500',
-    color: '#333',
-    marginBottom: 4,
+    color: '#666',
     textAlign: 'center',
   },
-  lockedText: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#999',
-    marginBottom: 4,
-    textAlign: 'center',
-  },
-  achievementDesc: {
-    fontSize: 11,
-    color: '#888',
-    textAlign: 'center',
-  },
-  logoutButton: {
+  settingItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#C70039',
-    marginHorizontal: 16,
-    marginTop: 30,
-    padding: 15,
-    borderRadius: 8,
+    paddingVertical: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
   },
-  logoutText: {
-    color: '#FFF',
-    fontWeight: 'bold',
-    marginLeft: 10,
+  settingIcon: {
+    width: 24,
+    height: 24,
+    marginRight: 15,
   },
-  footerSpace: {
-    height: 50,
+  settingText: {
+    fontSize: 16,
+    color: '#333',
+  },
+  logoutItem: {
+    borderBottomWidth: 0,
   },
 });
-
-export default ProfilePage;

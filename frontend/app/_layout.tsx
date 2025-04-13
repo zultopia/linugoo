@@ -6,8 +6,8 @@ import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 import { useColorScheme as useNativeColorScheme } from 'react-native';
 import 'react-native-reanimated';
+import { AuthProvider } from './context/AuthContext';
 
-// Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
@@ -27,18 +27,22 @@ export default function RootLayout() {
   }
 
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="(tabs)/profile" options={{ headerShown: false }} />
-        <Stack.Screen name="(auth)/login" options={{ headerShown: false }} />
-        <Stack.Screen name="(auth)/register" options={{ headerShown: false }} />
-        <Stack.Screen name="(teacher)/dashboard" options={{ headerShown: false }} />
-        <Stack.Screen name="(games)/base" options={{ headerShown: false }} />
-        <Stack.Screen name="(games)/detail/[id]/page" options={{ headerShown: true, title: "Detail Page" }} />
-        <Stack.Screen name="+not-found" />
-      </Stack>
-      <StatusBar style="auto" />
-    </ThemeProvider>
+    <AuthProvider>
+      <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+        <Stack>
+          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+          <Stack.Screen name="(tabs)/profile" options={{ headerShown: false }} />
+          <Stack.Screen name="(auth)/login" options={{ headerShown: false }} />
+          <Stack.Screen name="(auth)/register" options={{ headerShown: false }} />
+          <Stack.Screen name="(teacher)/dashboard" options={{ headerShown: false }} />
+          <Stack.Screen name="(teacher)/data-siswa" options={{ headerShown: false }} />
+          <Stack.Screen name="(teacher)/jurnal" options={{ headerShown: false }} />
+          <Stack.Screen name="(games)/base" options={{ headerShown: false }} />
+          <Stack.Screen name="(games)/detail/[id]/page" options={{ headerShown: true, title: "Detail Page" }} />
+          <Stack.Screen name="+not-found" />
+        </Stack>
+        <StatusBar style="auto" />
+      </ThemeProvider>
+    </AuthProvider>
   );
 }

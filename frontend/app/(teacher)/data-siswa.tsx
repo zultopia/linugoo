@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -10,45 +10,13 @@ import {
   SafeAreaView,
   StatusBar,
   FlatList,
+  ActivityIndicator,
+  Alert
 } from 'react-native';
 import { Svg, Circle, Text as SvgText, G } from 'react-native-svg';
-import { useNavigation } from '@react-navigation/native';
-
-// Sample student data
-const students = [
-  { id: 1, name: "Andrea Hiputolon", selected: false },
-  { id: 2, name: "Marzuli Suhada M", selected: true },
-  { id: 3, name: "Ahmad Mudab", selected: false },
-  { id: 4, name: "Arif Ribbad", selected: false },
-  { id: 5, name: "Ahmad Arif", selected: false },
-  { id: 6, name: "Sahida Marzilah", selected: false },
-  { id: 7, name: "Qanita Marhada", selected: false },
-  { id: 8, name: "Serenada Marzuli", selected: false },
-  { id: 9, name: "Suhanada Cinta", selected: false },
-  { id: 10, name: "Hirais Mas'udah", selected: false },
-  { id: 11, name: "Zahifa Mudadah", selected: false },
-];
-
-// Sample literacy assessment data
-const literacyData = [
-  { type: "Baca", percentage: 80 },
-  { type: "Numerasi", percentage: 92 },
-  { type: "Sains", percentage: 65 },
-  { type: "Finansial", percentage: 73 },
-  { type: "Budaya", percentage: 80 },
-];
-
-// Sample progress data
-const progressData = [
-  { label: "Keamanan Internet", value: 83 },
-  { label: "Netiket", value: 58 },
-  { label: "Safe Browsing", value: 97 },
-  { label: "Hoaks", value: 42 },
-];
-
-// Sample module data
-const modules = Array(6).fill("Hoaks dan Informasi Palsu");
-const files = Array(5).fill("Hoaks dan Informasi Palsu");
+import { useRouter } from 'expo-router';
+import { useAuth } from '../context/AuthContext';
+import Toast from "react-native-toast-message";
 
 // Link Icon component
 const LinkIcon = () => (
@@ -63,14 +31,99 @@ const LinkIcon = () => (
 const windowWidth = Dimensions.get('window').width;
 const isTablet = windowWidth >= 768;
 
-const DataSiswa = () => {
-  // Untuk TypeScript, bisa menggunakan tipe any untuk sementara
-  const navigation = useNavigation<any>();
-  const [selectedClass, setSelectedClass] = useState("Kelas 5 - 5A");
-  const [selectedStudent, setSelectedStudent] = useState(2); // Marzuli Suhada M
-  const [isClassDropdownOpen, setIsClassDropdownOpen] = useState(false);
+// Sample progress data
+const progressData = [
+  { label: "Keamanan Internet", value: 83 },
+  { label: "Netiket", value: 58 },
+  { label: "Safe Browsing", value: 97 },
+  { label: "Hoaks", value: 42 },
+];
 
-  const toggleStudent = (id: number) => {
+// Sample literacy assessment data
+const literacyData = [
+  { type: "Baca", percentage: 80 },
+  { type: "Numerasi", percentage: 92 },
+  { type: "Sains", percentage: 65 },
+  { type: "Finansial", percentage: 73 },
+  { type: "Budaya", percentage: 80 },
+];
+
+// Sample module data
+const modules = Array(6).fill("Hoaks dan Informasi Palsu");
+const files = Array(5).fill("Hoaks dan Informasi Palsu");
+
+// Interface for student data
+interface Student {
+  id: string;
+  username: string;
+  name: string;
+  email: string;
+  role: string;
+}
+
+const DataSiswa = () => {
+  const router = useRouter();
+  const { user, token, isLoading: authLoading } = useAuth();
+  const [selectedClass, setSelectedClass] = useState("Kelas 5 - 5A");
+  const [selectedStudent, setSelectedStudent] = useState<string | null>(null);
+  const [isClassDropdownOpen, setIsClassDropdownOpen] = useState(false);
+  const [students, setStudents] = useState<Student[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  
+  // Redirect non-teachers to appropriate page
+  useEffect(() => {
+    if (!authLoading && user && user.role !== 'Guru') {
+      router.replace('/(games)/base');
+    }
+  }, [user, authLoading]);
+
+  // Fetch students from the backend
+  useEffect(() => {
+    const fetchStudents = async () => {
+      if (!token) return;
+      
+      setIsLoading(true);
+      try {
+        const response = await fetch('http://localhost:5000/users/students', {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          setStudents(data.students);
+          
+          // Set the first student as selected by default if we have students
+          if (data.students && data.students.length > 0 && !selectedStudent) {
+            setSelectedStudent(data.students[0].id);
+          }
+        } else {
+          Toast.show({
+            type: 'error',
+            position: 'top',
+            text1: 'Error',
+            text2: 'Failed to fetch students',
+          });
+        }
+      } catch (error) {
+        console.error('Error fetching students:', error);
+        Toast.show({
+          type: 'error',
+          position: 'top',
+          text1: 'Error',
+          text2: 'Something went wrong while fetching students',
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchStudents();
+  }, [token]);
+
+  const toggleStudent = (id: string) => {
     setSelectedStudent(id);
   };
 
@@ -103,7 +156,7 @@ const DataSiswa = () => {
             strokeDasharray={circumference}
             strokeDashoffset={circumference - progress}
             strokeLinecap="round"
-            transform={`rotate(-90, 25, 25)`}
+            transform="rotate(-90, 25, 25)"
           />
           {/* Percentage Text */}
           <SvgText
@@ -124,6 +177,19 @@ const DataSiswa = () => {
     );
   };
 
+  const navigateToTeacherDashboard = () => {
+    router.replace('/(teacher)/dashboard');
+  };
+
+  if (authLoading || (user && user.role !== 'Guru')) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#C70039" />
+        <Text style={styles.loadingText}>Loading...</Text>
+      </View>
+    );
+  }
+
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
@@ -132,7 +198,7 @@ const DataSiswa = () => {
       <View style={styles.header}>
         <View style={styles.logoContainer}>
           <Image 
-            source={require('../../assets/images/lino.png')} 
+            source={require('../../assets/images/owl-academic.png')} 
             style={styles.logo} 
             resizeMode="contain"
           />
@@ -142,13 +208,19 @@ const DataSiswa = () => {
           </View>
         </View>
         <View style={styles.navContainer}>
-          <TouchableOpacity onPress={() => navigation.navigate('Jurnal' as never)}>
+          <TouchableOpacity onPress={() => router.replace('/(teacher)/jurnal')}>
             <Text style={styles.navItemJurnal}>Jurnal</Text>
           </TouchableOpacity>
-          <TouchableOpacity onPress={() => navigation.navigate('DataSiswa' as never)}>
+          <TouchableOpacity onPress={() => router.replace('/(teacher)/data-siswa')}>
             <Text style={styles.navItemDataSiswa}>Data Siswa</Text>
           </TouchableOpacity>
-          <View style={styles.profilePic} />
+          <TouchableOpacity onPress={() => router.push('/(tabs)/profile')}>
+            <View style={styles.profilePic}>
+              <Text style={styles.profileInitials}>
+                {user?.name ? user.name.substring(0, 1).toUpperCase() : '?'}
+              </Text>
+            </View>
+          </TouchableOpacity>
         </View>
       </View>
       
@@ -186,8 +258,8 @@ const DataSiswa = () => {
 
             {/* Class Info */}
             <View style={styles.classInfo}>
-              <Text style={styles.classTitle}>Kelas 5 - 5A</Text>
-              <Text style={styles.classDetail}>Jumlah Siswa: 20</Text>
+              <Text style={styles.classTitle}>{selectedClass}</Text>
+              <Text style={styles.classDetail}>Jumlah Siswa: {students.length}</Text>
               <Text style={styles.classDetail}>Link Masuk Kelas:</Text>
               <View style={styles.divider} />
             </View>
@@ -197,27 +269,37 @@ const DataSiswa = () => {
               <View style={styles.studentListHeader}>
                 <Text style={styles.studentListTitle}>Siswa Kelas</Text>
               </View>
-              <FlatList
-                data={students}
-                keyExtractor={(item) => item.id.toString()}
-                renderItem={({ item }) => (
-                  <TouchableOpacity 
-                    style={[
-                      styles.studentItem, 
-                      selectedStudent === item.id && styles.studentItemSelected
-                    ]}
-                    onPress={() => toggleStudent(item.id)}
-                  >
-                    <Text style={[
-                      styles.studentName, 
-                      selectedStudent === item.id && styles.studentNameSelected
-                    ]}>
-                      {item.name}
+              
+              {isLoading ? (
+                <ActivityIndicator style={styles.listLoader} color="#C70039" size="large" />
+              ) : (
+                <FlatList
+                  data={students}
+                  keyExtractor={(item) => item.id}
+                  renderItem={({ item }) => (
+                    <TouchableOpacity 
+                      style={[
+                        styles.studentItem, 
+                        selectedStudent === item.id && styles.studentItemSelected
+                      ]}
+                      onPress={() => toggleStudent(item.id)}
+                    >
+                      <Text style={[
+                        styles.studentName, 
+                        selectedStudent === item.id && styles.studentNameSelected
+                      ]}>
+                        {item.name}
+                      </Text>
+                    </TouchableOpacity>
+                  )}
+                  style={styles.studentList}
+                  ListEmptyComponent={
+                    <Text style={styles.emptyListText}>
+                      No students found. Add students through the admin panel.
                     </Text>
-                  </TouchableOpacity>
-                )}
-                style={styles.studentList}
-              />
+                  }
+                />
+              )}
             </View>
           </View>
 
@@ -271,6 +353,7 @@ const DataSiswa = () => {
           </View>
         </View>
       </ScrollView>
+      <Toast />
     </SafeAreaView>
   );
 };
@@ -279,6 +362,17 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#F5F5F5',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#F5F5F5',
+  },
+  loadingText: {
+    marginTop: 10,
+    fontSize: 16,
+    color: '#555',
   },
   header: {
     backgroundColor: '#FFFFFF',
@@ -333,7 +427,14 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: '#CCCCCC',
+    backgroundColor: '#C70039',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  profileInitials: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
   },
   mainContent: {
     flex: 1,
@@ -463,6 +564,15 @@ const styles = StyleSheet.create({
   },
   studentList: {
     flex: 1,
+  },
+  listLoader: {
+    marginTop: 20,
+  },
+  emptyListText: {
+    textAlign: 'center',
+    color: '#999',
+    marginTop: 20,
+    padding: 20,
   },
   studentItem: {
     backgroundColor: '#F9F9F9',

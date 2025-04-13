@@ -10,9 +10,9 @@
     "dev": "concurrently \"npm run start:frontend\" \"npm run start:backend\""
   },
   "devDependencies": {
+    "@types/react": "~18.3.12",
     "concurrently": "^8.2.2",
-    "typescript": "^5.3.3",
-    "@types/react": "~18.3.12"
+    "typescript": "^5.3.3"
   },
   "repository": {
     "type": "git",
@@ -27,6 +27,7 @@
   },
   "homepage": "https://github.com/zultopia/linugoo#readme",
   "dependencies": {
+    "@react-native-async-storage/async-storage": "1.23.1",
     "expo": "^52.0.44",
     "react-native": "^0.76.9",
     "react-native-safe-area-context": "^4.12.0"

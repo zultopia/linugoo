@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { 
   View, 
   Text, 
@@ -11,24 +11,34 @@ import {
   Dimensions,
   KeyboardAvoidingView,
   ScrollView,
-  ImageBackground
+  ActivityIndicator
 } from "react-native";
 import Toast from "react-native-toast-message";
 import Icon from "react-native-vector-icons/Feather"; 
 import { useRouter } from 'expo-router';
-// Note: You need to install react-native-svg first
-// npm install react-native-svg
-// or yarn add react-native-svg
+import { useAuth } from "../context/AuthContext";
 
 const { width, height } = Dimensions.get('window');
 const isSmallDevice = width < 768;
 
 const LoginPage = () => {
   const router = useRouter();
+  const { login, isLoading, user } = useAuth();
   const [emailOrUsername, setEmailOrUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState({ emailOrUsername: "", password: "" });
   const [passwordVisible, setPasswordVisible] = useState(false);
+
+  // Redirect if already logged in
+  useEffect(() => {
+    if (user) {
+      if (user.role === 'Guru') {
+        router.replace('/(teacher)/dashboard');
+      } else {
+        router.replace('/(games)/base');
+      }
+    }
+  }, [user]);
 
   const handleLogin = async () => {
     // Reset error state before login
@@ -43,47 +53,21 @@ const LoginPage = () => {
       return;
     }
 
-    // Prepare payload for API
-    const requestBody = {
-      emailOrUsername,
-      password,
-    };
+    // Call login function from auth context
+    const result = await login(emailOrUsername, password);
 
-    try {
-      const response = await fetch("http://localhost:5000/auth/login", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(requestBody),
-      });
-
-      const data = await response.json();
-
-      if (response.status === 200) {
-        router.push('/dashboard');
-
-        Toast.show({
-          type: "success",
-          position: "top",
-          text1: "Login Successful",
-        });
-      } else {
-        // If login fails
-        Toast.show({
-          type: "error",
-          position: "top",
-          text1: "Login Failed",
-          text2: data.message || "Invalid credentials",
-        });
-      }
-    } catch (error) {
-      // Show error toast for API issues
+    if (!result.success) {
       Toast.show({
         type: "error",
         position: "top",
-        text1: "Error",
-        text2: "Something went wrong. Please try again later.",
+        text1: "Login Failed",
+        text2: result.message,
+      });
+    } else {
+      Toast.show({
+        type: "success",
+        position: "top",
+        text1: "Login Successful",
       });
     }
   };
@@ -182,6 +166,7 @@ const LoginPage = () => {
                 style={styles.input}
                 value={emailOrUsername}
                 onChangeText={setEmailOrUsername}
+                editable={!isLoading}
               />
               {error.emailOrUsername ? (
                 <Text style={styles.errorText}>{error.emailOrUsername}</Text>
@@ -197,10 +182,12 @@ const LoginPage = () => {
                   style={[styles.input, styles.passwordInput]}
                   value={password}
                   onChangeText={setPassword}
+                  editable={!isLoading}
                 />
                 <TouchableOpacity 
                   style={styles.eyeIcon} 
                   onPress={() => setPasswordVisible(!passwordVisible)}
+                  disabled={isLoading}
                 >
                   <Icon 
                     name={passwordVisible ? "eye-off" : "eye"} 
@@ -215,15 +202,23 @@ const LoginPage = () => {
 
               <Text style={styles.forgotPassword}>Forgot Password</Text>
 
-              <TouchableOpacity style={styles.signInButton} onPress={handleLogin}>
-                <Text style={styles.signInButtonText}>Sign in</Text>
+              <TouchableOpacity 
+                style={[styles.signInButton, isLoading && styles.signInButtonDisabled]} 
+                onPress={handleLogin}
+                disabled={isLoading}
+              >
+                {isLoading ? (
+                  <ActivityIndicator color="#FFFFFF" size="small" />
+                ) : (
+                  <Text style={styles.signInButtonText}>Sign in</Text>
+                )}
               </TouchableOpacity>
 
               <View style={styles.signUpContainer}>
                 <Text style={styles.signUpText}>
                   No Account? {" "}
                 </Text>
-                <TouchableOpacity onPress={() => router.replace('/register')}>
+                <TouchableOpacity onPress={() => router.replace('/(auth)/register')} disabled={isLoading}>
                   <Text style={styles.signUpLink}>Sign up</Text>
                 </TouchableOpacity>
               </View>
@@ -436,6 +431,9 @@ const styles = StyleSheet.create({
     borderRadius: 5, 
     alignItems: "center",
     marginBottom: 15,
+  },
+  signInButtonDisabled: {
+    backgroundColor: "#d77a7e",
   },
   signInButtonText: { 
     color: "white", 

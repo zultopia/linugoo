@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   View, 
   Text, 
@@ -7,21 +7,22 @@ import {
   Image, 
   StyleSheet, 
   Platform,
-  SafeAreaView,
   Dimensions,
   KeyboardAvoidingView,
   ScrollView,
-  ImageBackground 
+  ActivityIndicator
 } from 'react-native';
 import Icon from "react-native-vector-icons/Feather";
 import { useRouter } from 'expo-router';
 import Toast from "react-native-toast-message";
+import { useAuth } from '../context/AuthContext';
 
 const { width, height } = Dimensions.get('window');
 const isSmallDevice = width < 768;
 
 const RegisterPage = () => {
   const router = useRouter();
+  const { register, isLoading, user } = useAuth();
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [name, setName] = useState('');
@@ -38,6 +39,17 @@ const RegisterPage = () => {
     password: '',
     confirmPassword: ''
   });
+
+  // Redirect if already logged in
+  useEffect(() => {
+    if (user) {
+      if (user.role === 'Guru') {
+        router.replace('/(teacher)/dashboard');
+      } else {
+        router.replace('/(games)/base');
+      }
+    }
+  }, [user]);
 
   const handleRegister = async () => {
     // Reset errors
@@ -102,52 +114,29 @@ const RegisterPage = () => {
       return;
     }
 
-    try {
-      // Call the register API endpoint
-      const response = await fetch("http://localhost:5000/auth/register", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          username,
-          email,
-          name,
-          phone,
-          password
-        }),
+    // Call register function from auth context
+    const result = await register(username, email, name, phone, password);
+    
+    if (result.success) {
+      // Show success message
+      Toast.show({
+        type: 'success',
+        position: 'top',
+        text1: 'Registration Successful',
+        text2: 'You can now login with your credentials',
       });
       
-      const data = await response.json();
-      
-      if (response.ok) {
-        // Show success message
-        Toast.show({
-          type: 'success',
-          position: 'top',
-          text1: 'Registration Successful',
-          text2: 'You can now login with your credentials',
-        });
-        
-        // Navigate to login page after successful registration
-        setTimeout(() => {
-          router.replace('/(auth)/login');
-        }, 1500);
-      } else {
-        // Handle API error
-        Toast.show({
-          type: 'error',
-          position: 'top',
-          text1: 'Registration Failed',
-          text2: data.message || 'Please try again later',
-        });
-      }
-    } catch (error) {
+      // Navigate to login page after successful registration
+      setTimeout(() => {
+        router.replace('/(auth)/login');
+      }, 1500);
+    } else {
+      // Handle API error
       Toast.show({
         type: 'error',
         position: 'top',
-        text1: 'Error',
-        text2: 'Something went wrong. Please try again later.',
+        text1: 'Registration Failed',
+        text2: result.message || 'Please try again later',
       });
     }
   };
@@ -233,6 +222,7 @@ const RegisterPage = () => {
                 style={styles.input}
                 value={username}
                 onChangeText={setUsername}
+                editable={!isLoading}
               />
               {error.username ? (
                 <Text style={styles.errorText}>{error.username}</Text>
@@ -247,6 +237,7 @@ const RegisterPage = () => {
                 style={styles.input}
                 value={name}
                 onChangeText={setName}
+                editable={!isLoading}
               />
               {error.name ? (
                 <Text style={styles.errorText}>{error.name}</Text>
@@ -263,6 +254,7 @@ const RegisterPage = () => {
                 onChangeText={setEmail}
                 keyboardType="email-address"
                 autoCapitalize="none"
+                editable={!isLoading}
               />
               {error.email ? (
                 <Text style={styles.errorText}>{error.email}</Text>
@@ -278,6 +270,7 @@ const RegisterPage = () => {
                 value={phone}
                 onChangeText={setPhone}
                 keyboardType="phone-pad"
+                editable={!isLoading}
               />
               {error.phone ? (
                 <Text style={styles.errorText}>{error.phone}</Text>
@@ -294,10 +287,12 @@ const RegisterPage = () => {
                   style={[styles.input, styles.passwordInput]}
                   value={password}
                   onChangeText={setPassword}
+                  editable={!isLoading}
                 />
                 <TouchableOpacity 
                   style={styles.eyeIcon} 
                   onPress={() => setPasswordVisible(!passwordVisible)}
+                  disabled={isLoading}
                 >
                   <Icon 
                     name={passwordVisible ? "eye-off" : "eye"} 
@@ -321,10 +316,12 @@ const RegisterPage = () => {
                   style={[styles.input, styles.passwordInput]}
                   value={confirmPassword}
                   onChangeText={setConfirmPassword}
+                  editable={!isLoading}
                 />
                 <TouchableOpacity 
                   style={styles.eyeIcon} 
                   onPress={() => setConfirmPasswordVisible(!confirmPasswordVisible)}
+                  disabled={isLoading}
                 >
                   <Icon 
                     name={confirmPasswordVisible ? "eye-off" : "eye"} 
@@ -337,15 +334,23 @@ const RegisterPage = () => {
                 <Text style={styles.errorText}>{error.confirmPassword}</Text>
               ) : null}
 
-              <TouchableOpacity style={styles.signUpButton} onPress={handleRegister}>
-                <Text style={styles.signUpButtonText}>Sign up</Text>
+              <TouchableOpacity 
+                style={[styles.signUpButton, isLoading && styles.signUpButtonDisabled]} 
+                onPress={handleRegister}
+                disabled={isLoading}
+              >
+                {isLoading ? (
+                  <ActivityIndicator color="#FFFFFF" size="small" />
+                ) : (
+                  <Text style={styles.signUpButtonText}>Sign up</Text>
+                )}
               </TouchableOpacity>
 
               <View style={styles.loginContainer}>
                 <Text style={styles.loginText}>
                   Already have an account? {" "}
                 </Text>
-                <TouchableOpacity onPress={() => router.replace('/(auth)/login')}>
+                <TouchableOpacity onPress={() => router.replace('/(auth)/login')} disabled={isLoading}>
                   <Text style={styles.loginLink}>Login</Text>
                 </TouchableOpacity>
               </View>
@@ -520,6 +525,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginTop: 10,
     marginBottom: 15,
+  },
+  signUpButtonDisabled: {
+    backgroundColor: "#d77a7e",
   },
   signUpButtonText: { 
     color: "white", 
