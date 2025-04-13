@@ -10,7 +10,12 @@ const app = express();
 // Middleware
 app.use(express.json());
 app.use(morgan("dev"));
-app.use(cors());
+app.use(cors({
+  origin: process.env.CLIENT_URL,
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
 app.use(bodyParser.json());
 app.use("/auth", authRoutes);
 app.use("/users", userRoutes);
