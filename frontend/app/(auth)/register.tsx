@@ -10,7 +10,8 @@ import {
   Dimensions,
   KeyboardAvoidingView,
   ScrollView,
-  ActivityIndicator
+  ActivityIndicator,
+  ImageBackground
 } from 'react-native';
 import Icon from "react-native-vector-icons/Feather";
 import { useRouter } from 'expo-router';
@@ -150,7 +151,11 @@ const RegisterPage = () => {
         <View style={styles.container}>
           {/* Background */}
           <View style={styles.backgroundContainer}>
-            <View style={styles.backgroundTop} />
+            <ImageBackground 
+              source={require("../../assets/images/background.svg")} 
+              style={styles.backgroundTop}
+              imageStyle={{ opacity: 0.7 }}
+            />
             <View style={styles.backgroundBottom} />
           </View>
           
@@ -382,8 +387,9 @@ const styles = StyleSheet.create({
     top: 0,
     left: 0,
     right: 0,
-    height: '50%',
-    backgroundColor: '#C70039', // Red color for top half
+    width: '100%',
+    height: '100%',
+    backgroundColor: '#C70039',
   },
   backgroundBottom: {
     position: 'absolute',
@@ -436,10 +442,11 @@ const styles = StyleSheet.create({
     marginTop: 20,
   },
   bottomOwlImage: {
-    width: 250,
-    height: 250,
+    width: 350, 
+    height: 350,
+    left: -20,
     alignSelf: "flex-start",
-    marginBottom: 40,
+    marginBottom: 10,
   },
   rightSide: { 
     flex: 1.2, 
