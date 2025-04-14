@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, TouchableOpacity, Image, StyleSheet, SafeAreaView, ScrollView, Dimensions, Platform, ActivityIndicator, ImageBackground } from 'react-native';
 import { useRouter } from 'expo-router';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../../context/AuthContext';
 import { SvgXml } from 'react-native-svg'; 
+import Navbar from '../components/navbar';
 
 const { width } = Dimensions.get('window');
 const isSmallDevice = width < 768;
@@ -17,7 +18,7 @@ interface Student {
 
 const DashboardPage = () => {
   const router = useRouter();
-  const { user, token, logout, isLoading: authLoading } = useAuth();
+  const { user, token, isLoading: authLoading } = useAuth();
   const [students, setStudents] = useState<Student[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -33,7 +34,7 @@ const DashboardPage = () => {
       
       setIsLoading(true);
       try {
-        const response = await fetch('http://localhost:5000/users/students', {
+        const response = await fetch(process.env.API_URL + '/users/students', {
           method: 'GET',
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -84,57 +85,8 @@ const DashboardPage = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.navbar}>
-        <View style={styles.logoContainer}>
-          <Image
-            source={require("../../assets/images/owl-academic.png")}
-            style={styles.logoIcon}
-            resizeMode="contain"
-          />
-          <View style={styles.logoTextContainer}>
-            <Text style={styles.logoText}>linugoo</Text>
-            <Text style={styles.logoSubtext}>untuk guru</Text>
-          </View>
-        </View>
-
-        <View style={styles.navLinksContainer}>
-          <TouchableOpacity 
-            style={styles.navLink}
-            onPress={() => handleNavigation('jurnal')}
-          >
-            <Text style={styles.navLinkText}>Jurnal</Text>
-          </TouchableOpacity>
-          
-          <TouchableOpacity 
-            style={styles.navLink}
-            onPress={() => handleNavigation('data-siswa')}
-          >
-            <Text style={styles.navLinkText}>Data Siswa</Text>
-          </TouchableOpacity>
-          
-          <TouchableOpacity 
-            style={styles.profileButton}
-            onPress={() => handleNavigation('profile')}
-          >
-            <View style={styles.profileIcon}>
-              <Text style={styles.profileInitials}>
-                {user?.name ? user.name.substring(0, 1).toUpperCase() : '?'}
-              </Text>
-            </View>
-          </TouchableOpacity>
-          
-          <TouchableOpacity 
-            style={styles.logoutButtonNav}
-            onPress={handleLogout}
-          >
-            <Image 
-              source={require('../../assets/images/logout.png')} 
-              style={styles.logoutIcon} 
-              resizeMode="contain"
-            />
-          </TouchableOpacity>
-        </View>
-      </View>
+      {/* Using the Navbar component */}
+      <Navbar onNavigate={handleNavigation} />
 
       <ScrollView style={styles.scrollView}>
         <View style={styles.backgroundPattern}>
@@ -228,94 +180,6 @@ const styles = StyleSheet.create({
     marginTop: 10,
     fontSize: 16,
     color: '#555',
-  },
-  navbar: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 15,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#EEEEEE',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 3,
-      },
-      android: {
-        elevation: 3,
-      },
-      web: {
-        boxShadow: '0px 2px 3px rgba(0, 0, 0, 0.1)',
-      },
-    }),
-    zIndex: 10,
-  },
-  logoContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  logoIcon: {
-    width: 40,
-    height: 40,
-    marginRight: 8,
-  },
-  logoTextContainer: {
-    flexDirection: 'column',
-  },
-  logoText: {
-    color: '#C70039',
-    fontSize: 24,
-    fontWeight: 'bold',
-  },
-  logoSubtext: {
-    color: '#555555',
-    fontSize: 12,
-    marginTop: -5,
-  },
-  navLinksContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  navLink: {
-    marginHorizontal: 15,
-  },
-  navLinkText: {
-    fontSize: 16,
-    color: '#333333',
-    fontWeight: '500',
-  },
-  profileButton: {
-    marginLeft: 15,
-    marginRight: 10,
-  },
-  profileIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#C70039',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  profileInitials: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
-  },
-  logoutButtonNav: {
-    marginLeft: 5,
-    padding: 8,
-    borderRadius: 8,
-    backgroundColor: '#f8d7da',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  logoutIcon: {
-    width: 24,
-    height: 24,
   },
   scrollView: {
     flex: 1,
@@ -492,3 +356,7 @@ const styles = StyleSheet.create({
 });
 
 export default DashboardPage;
+
+function logout() {
+  throw new Error('Function not implemented.');
+}

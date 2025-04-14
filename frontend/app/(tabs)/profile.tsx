@@ -15,7 +15,7 @@ import {
   Platform
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../../context/AuthContext';
 
 const { width } = Dimensions.get('window');
 const isSmallDevice = width < 768;
@@ -44,7 +44,7 @@ export default function ProfilePage() {
       
       setIsLoading(true);
       try {
-        const response = await fetch('http://localhost:5000/users/profile', {
+        const response = await fetch(process.env.API_URL + '/users/profile', {
           method: 'GET',
           headers: {
             'Authorization': `Bearer ${token}`,

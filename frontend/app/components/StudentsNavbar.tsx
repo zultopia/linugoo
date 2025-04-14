@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, Image, TouchableOpacity, StyleSheet, Platform, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../../context/AuthContext';
 import Icon from "react-native-vector-icons/Feather";
 
 interface StudentNavbarProps {
@@ -41,7 +41,9 @@ const StudentNavbar: React.FC<StudentNavbarProps> = ({ title = "Linugoo" }) => {
           style={styles.logo} 
           resizeMode="contain"
         />
-        <Text style={styles.title}>{title}</Text>
+        <TouchableOpacity onPress={() => router.push('/(games)/base')}>
+          <Text style={styles.title}>{title}</Text>
+        </TouchableOpacity>
       </View>
 
       <View style={styles.rightSection}>
