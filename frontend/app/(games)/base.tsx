@@ -12,9 +12,8 @@ import {
   SafeAreaView,
   StatusBar
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
 import { useRouter } from 'expo-router';
-import { useAuth } from '../context/AuthContext';
+import StudentNavbar from '../components/StudentsNavbar';
 
 // Mendapatkan dimensi layar
 const windowWidth = Dimensions.get('window').width;
@@ -25,57 +24,38 @@ const classMarkers = [
   {
     id: 1,
     name: 'Kelas 1',
-    location: { topPercent: 32, leftPercent: 18 },
+    location: { topPercent: 40, leftPercent: 5 },
     image: require('../../assets/images/kelas1.svg'),
   },
   {
     id: 2,
     name: 'Kelas 2',
-    location: { topPercent: 65, leftPercent: 30 },
+    location: { topPercent: 60, leftPercent: 22 },
     image: require('../../assets/images/kelas2.svg'),
   },
   {
     id: 3,
     name: 'Kelas 3',
-    location: { topPercent: 42, leftPercent: 48 },
+    location: { topPercent: 32, leftPercent: 35 },
     image: require('../../assets/images/kelas3.svg'),
   },
   {
     id: 4,
     name: 'Kelas 4-5',
-    location: { topPercent: 52, leftPercent: 65 },
+    location: { topPercent: 48, leftPercent: 53 },
     image: require('../../assets/images/kelas4-5.svg'),
   },
   {
     id: 6,
     name: 'Kelas 6',
-    location: { topPercent: 48, leftPercent: 88 },
+    location: { topPercent: 26, leftPercent: 90 },
     image: require('../../assets/images/kelas6.svg'),
   },
 ];
 
 export default function GameMapPage() {
-  const navigation = useNavigation<any>();
   const router = useRouter();
-  const { logout } = useAuth();
 
-  const handleProfilePress = () => {
-    router.push('/(tabs)/profile');
-  };
-  
-  // Handle logout
-  const handleLogoutPress = async () => {
-    try {
-      // Panggil fungsi logout dari AuthContext
-      await logout();
-      // Navigasi ke halaman login dilakukan di dalam fungsi logout
-    } catch (error) {
-      console.error('Logout error:', error);
-      // Jika ada error, tetap coba navigasi ke login
-      router.replace('/(auth)/login');
-    }
-  };
-  
   // State untuk menampilkan popup informasi kelas
   const [selectedClass, setSelectedClass] = useState<number | null>(null);
   
@@ -134,94 +114,67 @@ export default function GameMapPage() {
   };
   
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="transparent" translucent />
-      
-      {/* Header */}
-      <View style={styles.header}>
-        <View style={styles.logoContainer}>
-          <Image 
-            source={require('../../assets/images/lino.png')} 
-            style={styles.logo} 
-            resizeMode="contain"
-          />
-          <View style={styles.logoTextContainer}>
-            <Text style={styles.logoTitle}>linugoo</Text>
-            <Text style={styles.logoSubtitle}>untuk siswa</Text>
+    <ImageBackground 
+      source={require('../../assets/images/bg-base.png')}
+      style={styles.mainBackground}
+      resizeMode="cover"
+    >
+      <SafeAreaView style={styles.container}>
+        <StatusBar barStyle="dark-content" backgroundColor="transparent" translucent />
+        
+        <StudentNavbar />
+        
+        {/* Game Map Content */}
+        <ImageBackground 
+          source={require('../../assets/images/indonesia-map-bg.svg')} 
+          style={styles.mapBackground}
+          resizeMode="cover"
+        >
+          <View style={styles.titleContainer}>
+            <Text style={styles.title}>Peta Literasi dan Numerasi: Ayo Jelajahi, Pelajari, Kuasai!</Text>
           </View>
-        </View>
-
-        <View style={styles.navIcons}>
-          <TouchableOpacity 
-            style={styles.iconButton} 
-            onPress={handleProfilePress}
-          >
-            <Image 
-              source={require('../../assets/images/profile.png')} 
-              style={styles.icon} 
-              resizeMode="contain"
-            />
-          </TouchableOpacity>
           
-          <TouchableOpacity 
-            style={styles.iconButton} 
-            onPress={handleLogoutPress}
-          >
-            <Image 
-              source={require('../../assets/images/logout.png')} 
-              style={styles.icon} 
-              resizeMode="contain"
-            />
-          </TouchableOpacity>
-        </View>
-      </View>
-      
-      {/* Game Map Content */}
-      <ImageBackground 
-        source={require('../../assets/images/indonesia-map-bg.svg')} 
-        style={styles.mapBackground}
-        resizeMode="cover"
-      >
-        <View style={styles.titleContainer}>
-          <Text style={styles.title}>Peta Literasi dan Numerasi: Ayo Jelajahi, Pelajari, Kuasai!</Text>
-        </View>
-        
-        {/* Render semua marker kelas */}
-        {renderMarkers()}
-        
-        {/* Popup informasi kelas jika ada yang dipilih */}
-        {selectedClass !== null && (
-          <View style={styles.popup}>
-            <TouchableOpacity onPress={closePopup} style={styles.closeButton}>
-              <Text style={styles.closeButtonText}>X</Text>
-            </TouchableOpacity>
-            <Text style={styles.popupTitle}>
-              {classMarkers.find(marker => marker.id === selectedClass)?.name}
-            </Text>
-            <Text style={styles.popupDescription}>
-              {selectedClass === 1 && "Belajar membaca dan menulis dasar dengan tema kebudayaan Sumatra."}
-              {selectedClass === 2 && "Belajar numerasi dasar dengan tema kebudayaan Jawa, Bali, dan Nusa Tenggara."}
-              {selectedClass === 3 && "Belajar konsep sains dasar dengan tema kebudayaan Kalimantan."}
-              {selectedClass === 4 && "Belajar literasi digital dengan tema kebudayaan Sulawesi."}
-              {selectedClass === 6 && "Belajar literasi finansial dengan tema kebudayaan Maluku dan Papua."}
-            </Text>
-            <TouchableOpacity 
-              style={styles.startButton}
-              onPress={() => navigateToClassDetail(selectedClass)}
-            >
-              <Text style={styles.startButtonText}>Mulai Belajar</Text>
-            </TouchableOpacity>
-          </View>
-        )}
-      </ImageBackground>
-    </SafeAreaView>
+          {/* Render semua marker kelas */}
+          {renderMarkers()}
+          
+          {/* Popup informasi kelas jika ada yang dipilih */}
+          {selectedClass !== null && (
+            <View style={styles.popup}>
+              <TouchableOpacity onPress={closePopup} style={styles.closeButton}>
+                <Text style={styles.closeButtonText}>X</Text>
+              </TouchableOpacity>
+              <Text style={styles.popupTitle}>
+                {classMarkers.find(marker => marker.id === selectedClass)?.name}
+              </Text>
+              <Text style={styles.popupDescription}>
+                {selectedClass === 1 && "Belajar membaca dan menulis dasar dengan tema kebudayaan Sumatra."}
+                {selectedClass === 2 && "Belajar numerasi dasar dengan tema kebudayaan Jawa, Bali, dan Nusa Tenggara."}
+                {selectedClass === 3 && "Belajar konsep sains dasar dengan tema kebudayaan Kalimantan."}
+                {selectedClass === 4 && "Belajar literasi digital dengan tema kebudayaan Sulawesi."}
+                {selectedClass === 6 && "Belajar literasi finansial dengan tema kebudayaan Maluku dan Papua."}
+              </Text>
+              <TouchableOpacity 
+                style={styles.startButton}
+                onPress={() => navigateToClassDetail(selectedClass)}
+              >
+                <Text style={styles.startButtonText}>Mulai Belajar</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+        </ImageBackground>
+      </SafeAreaView>
+    </ImageBackground>
   );
 }
 
 const styles = StyleSheet.create({
+  mainBackground: {
+    flex: 1,
+    width: '100%',
+    height: '100%',
+  },
   container: {
     flex: 1,
-    backgroundColor: '#E1F5F5',
   },
   header: {
     flexDirection: 'row',

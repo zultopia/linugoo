@@ -16,7 +16,7 @@ import {
 import Icon from "react-native-vector-icons/Feather";
 import { useRouter } from 'expo-router';
 import Toast from "react-native-toast-message";
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../../context/AuthContext';
 
 const { width, height } = Dimensions.get('window');
 const isSmallDevice = width < 768;

@@ -6,7 +6,7 @@ import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 import { useColorScheme as useNativeColorScheme } from 'react-native';
 import 'react-native-reanimated';
-import { AuthProvider } from './context/AuthContext';
+import { AuthProvider } from '../context/AuthContext';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -30,7 +30,7 @@ export default function RootLayout() {
     <AuthProvider>
       <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
         <Stack>
-          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+          {/* <Stack.Screen name="(tabs)" options={{ headerShown: false }} /> */}
           <Stack.Screen name="(tabs)/profile" options={{ headerShown: false }} />
           <Stack.Screen name="(auth)/login" options={{ headerShown: false }} />
           <Stack.Screen name="(auth)/register" options={{ headerShown: false }} />

@@ -15,6 +15,8 @@ import {
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
+import Navbar from '../components/navbar';
+import { router } from 'expo-router';
 
 const Jurnal = () => {
   const { width } = useWindowDimensions();
@@ -92,6 +94,16 @@ const Jurnal = () => {
       ] 
     },
   ];
+
+  const handleNavigation = (route: string) => {
+    if (route === 'profile') {
+      router.push('/(tabs)/profile');
+    } else if (route === 'jurnal') {
+      router.push('/(teacher)/jurnal');
+    } else if (route === 'data-siswa') {
+      router.push('/(teacher)/data-siswa');
+    }
+  };
 
   const handleSendMessage = () => {
     if (message.trim()) {
@@ -436,34 +448,7 @@ const Jurnal = () => {
       ) : (
         // Desktop layout
         <>
-          <View style={styles.header}>
-            <View style={styles.logoContainer}>
-              <Image
-                source={require("../../assets/images/owl-academic.png")}
-                style={styles.logoIcon}
-                resizeMode="contain"
-              />
-              <View style={styles.logoTextContainer}>
-                <Text style={styles.logoText}>linugoo</Text>
-                <Text style={styles.logoSubtext}>untuk guru</Text>
-              </View>
-            </View>
-            
-            <View style={styles.navContainer}>
-              <TouchableOpacity style={styles.navItem}>
-                <Text style={[styles.navText, styles.activeNav]}>Jurnal</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.navItem}>
-                <Text style={styles.navText}>Data Siswa</Text>
-              </TouchableOpacity>
-            </View>
-            
-            <TouchableOpacity style={styles.profileContainer}>
-              <View style={styles.profileImage}>
-                <Ionicons name="person" size={24} color="#ccc" />
-              </View>
-            </TouchableOpacity>
-          </View>
+          <Navbar onNavigate={handleNavigation} />
 
           <View style={styles.content}>
             <View style={styles.leftSection}>

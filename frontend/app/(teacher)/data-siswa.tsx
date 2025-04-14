@@ -15,8 +15,9 @@ import {
 } from 'react-native';
 import { Svg, Circle, Text as SvgText, G } from 'react-native-svg';
 import { useRouter } from 'expo-router';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../../context/AuthContext';
 import Toast from "react-native-toast-message";
+import Navbar from '../components/navbar';
 
 // Link Icon component
 const LinkIcon = () => (
@@ -84,7 +85,7 @@ const DataSiswa = () => {
       
       setIsLoading(true);
       try {
-        const response = await fetch('http://localhost:5000/users/students', {
+        const response = await fetch(process.env.API_URL + '/users/students', {
           method: 'GET',
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -177,10 +178,16 @@ const DataSiswa = () => {
     );
   };
 
-  const navigateToTeacherDashboard = () => {
-    router.replace('/(teacher)/dashboard');
+  const handleNavigation = (route: string) => {
+    if (route === 'profile') {
+      router.push('/(tabs)/profile');
+    } else if (route === 'jurnal') {
+      router.push('/(teacher)/jurnal');
+    } else if (route === 'data-siswa') {
+      router.push('/(teacher)/data-siswa');
+    }
   };
-
+  
   if (authLoading || (user && user.role !== 'Guru')) {
     return (
       <View style={styles.loadingContainer}>
@@ -195,34 +202,7 @@ const DataSiswa = () => {
       <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
       
       {/* Header */}
-      <View style={styles.header}>
-        <View style={styles.logoContainer}>
-          <Image 
-            source={require('../../assets/images/owl-academic.png')} 
-            style={styles.logo} 
-            resizeMode="contain"
-          />
-          <View style={styles.logoTextContainer}>
-            <Text style={styles.logoText}>linugoo</Text>
-            <Text style={styles.logoSubtext}>untuk guru</Text>
-          </View>
-        </View>
-        <View style={styles.navContainer}>
-          <TouchableOpacity onPress={() => router.replace('/(teacher)/jurnal')}>
-            <Text style={styles.navItemJurnal}>Jurnal</Text>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={() => router.replace('/(teacher)/data-siswa')}>
-            <Text style={styles.navItemDataSiswa}>Data Siswa</Text>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={() => router.push('/(tabs)/profile')}>
-            <View style={styles.profilePic}>
-              <Text style={styles.profileInitials}>
-                {user?.name ? user.name.substring(0, 1).toUpperCase() : '?'}
-              </Text>
-            </View>
-          </TouchableOpacity>
-        </View>
-      </View>
+      <Navbar onNavigate={handleNavigation} />
       
       <ScrollView style={styles.mainContent}>
         <View style={isTablet ? styles.contentTablet : styles.contentMobile}>
