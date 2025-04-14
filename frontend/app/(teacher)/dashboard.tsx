@@ -1,12 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, TouchableOpacity, Image, StyleSheet, SafeAreaView, ScrollView, Dimensions, Platform, ActivityIndicator } from 'react-native';
+import { View, Text, TouchableOpacity, Image, StyleSheet, SafeAreaView, ScrollView, Dimensions, Platform, ActivityIndicator, ImageBackground } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuth } from '../context/AuthContext';
+import { SvgXml } from 'react-native-svg'; 
 
 const { width } = Dimensions.get('window');
 const isSmallDevice = width < 768;
 
-// Interface for student data
 interface Student {
   id: string;
   username: string;
@@ -21,14 +21,12 @@ const DashboardPage = () => {
   const [students, setStudents] = useState<Student[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Redirect non-teachers to appropriate page
   useEffect(() => {
     if (!authLoading && user && user.role !== 'Guru') {
       router.replace('/(games)/base');
     }
   }, [user, authLoading]);
 
-  // Fetch students from the backend
   useEffect(() => {
     const fetchStudents = async () => {
       if (!token) return;
@@ -69,7 +67,6 @@ const DashboardPage = () => {
   const handleLogout = async () => {
     try {
       await logout();
-      // Router navigation is handled inside the logout function
     } catch (error) {
       console.error('Error saat logout:', error);
       router.replace('/(auth)/login');
@@ -87,7 +84,6 @@ const DashboardPage = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Navbar */}
       <View style={styles.navbar}>
         <View style={styles.logoContainer}>
           <Image
@@ -127,7 +123,6 @@ const DashboardPage = () => {
             </View>
           </TouchableOpacity>
           
-          {/* Logout Button in Navbar */}
           <TouchableOpacity 
             style={styles.logoutButtonNav}
             onPress={handleLogout}
@@ -143,26 +138,33 @@ const DashboardPage = () => {
 
       <ScrollView style={styles.scrollView}>
         <View style={styles.backgroundPattern}>
+          <Image 
+            source={require("../../assets/images/background.svg")}
+            style={styles.backgroundSvg}
+            resizeMode="cover"
+          />
+          
           <View style={styles.contentContainer}>
-            {/* Welcome Header */}
             <View style={styles.welcomeContainer}>
               <View>
                 <Text style={styles.welcomeText}>Selamat Datang di</Text>
                 <Text style={styles.brandText}>linugoo</Text>
-                {user?.name && (
-                  <Text style={styles.teacherName}>Guru {user.name}</Text>
-                )}
               </View>
             </View>
 
-            {/* Card Options */}
             <View style={styles.cardsContainer}>
               <TouchableOpacity 
                 style={styles.cardJurnal}
                 onPress={() => handleNavigation('jurnal')}
               >
                 <View style={styles.cardIconPlaceholder}>
-                  <Text style={styles.cardIconText}>📝</Text>
+                  <SvgXml 
+                    xml={`<svg width="40" height="40" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M19 3H5C3.89 3 3 3.9 3 5V19C3 20.1 3.89 21 5 21H19C20.11 21 21 20.1 21 19V5C21 3.9 20.11 3 19 3ZM19 19H5V5H19V19ZM17 12H7V10H17V12ZM13 16H7V14H13V16ZM7 8H17V6H7V8Z" fill="#FFFFFF"/>
+                    </svg>`} 
+                    width={40} 
+                    height={40} 
+                  />
                 </View>
                 <Text style={styles.cardText}>Jurnal</Text>
               </TouchableOpacity>
@@ -172,13 +174,18 @@ const DashboardPage = () => {
                 onPress={() => handleNavigation('data-siswa')}
               >
                 <View style={styles.cardIconPlaceholder}>
-                  <Text style={styles.cardIconText}>👨‍🎓</Text>
+                  <SvgXml 
+                    xml={`<svg width="40" height="40" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2ZM12 5C13.66 5 15 6.34 15 8C15 9.66 13.66 11 12 11C10.34 11 9 9.66 9 8C9 6.34 10.34 5 12 5ZM12 19.2C9.5 19.2 7.29 17.92 6 15.98C6.03 13.99 10 12.9 12 12.9C13.99 12.9 17.97 13.99 18 15.98C16.71 17.92 14.5 19.2 12 19.2Z" fill="#FFFFFF"/>
+                    </svg>`} 
+                    width={40} 
+                    height={40} 
+                  />
                 </View>
                 <Text style={styles.cardText}>Data Siswa</Text>
               </TouchableOpacity>
             </View>
 
-            {/* Stats Section */}
             <View style={styles.statsContainer}>
               <Text style={styles.statsTitle}>Statistik Kelas</Text>
               
@@ -199,8 +206,6 @@ const DashboardPage = () => {
                 </View>
               </View>
             </View>
-
-            {/* Removed logout button from here */}
           </View>
         </View>
       </ScrollView>
@@ -319,10 +324,19 @@ const styles = StyleSheet.create({
     flex: 1,
     width: '100%',
     backgroundColor: '#FFF5E0',
+    position: 'relative', 
+  },
+  backgroundSvg: {
+    position: 'absolute',
+    width: '100%',
+    height: '100%',
+    opacity: 0.8, 
+    zIndex: 1, 
   },
   contentContainer: {
     flex: 1,
     padding: 20,
+    zIndex: 2, 
   },
   welcomeContainer: {
     paddingVertical: 40,
@@ -405,7 +419,8 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   cardIconText: {
-    fontSize: 40,
+    width: 40,
+    height: 40,
   },
   cardText: {
     color: '#FFFFFF',
@@ -461,7 +476,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#555',
   },
-  // Kept the style for reference but not using it anymore in this component
   logoutButton: {
     backgroundColor: '#C70039',
     padding: 15,
