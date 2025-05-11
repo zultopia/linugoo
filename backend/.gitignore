@@ -36,3 +36,5 @@ coverage/
 *.pid
 *.seed
 *.pid.lock
+
+src/*.json
