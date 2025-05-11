@@ -1,3 +1,4 @@
+// Updated _layout.tsx (the main router file)
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
@@ -30,15 +31,18 @@ export default function RootLayout() {
     <AuthProvider>
       <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
         <Stack>
-          {/* <Stack.Screen name="(tabs)" options={{ headerShown: false }} /> */}
           <Stack.Screen name="(tabs)/profile" options={{ headerShown: false }} />
           <Stack.Screen name="(auth)/login" options={{ headerShown: false }} />
           <Stack.Screen name="(auth)/register" options={{ headerShown: false }} />
           <Stack.Screen name="(teacher)/dashboard" options={{ headerShown: false }} />
           <Stack.Screen name="(teacher)/data-siswa" options={{ headerShown: false }} />
           <Stack.Screen name="(teacher)/jurnal" options={{ headerShown: false }} />
+          <Stack.Screen name="(teacher)/edit-profile" options={{ headerShown: false }} />
+          <Stack.Screen name="(teacher)/change-password" options={{ headerShown: false }} />
+          <Stack.Screen name="(teacher)/help" options={{ headerShown: false }} />
           <Stack.Screen name="(games)/base" options={{ headerShown: false }} />
-          <Stack.Screen name="(games)/detail/[id]/page" options={{ headerShown: true, title: "Detail Page" }} />
+          <Stack.Screen name="(games)/detail/[id]/page" options={{ headerShown: false }} />
+          <Stack.Screen name="(games)/activities/[id]/page" options={{ headerShown: false }} />
           <Stack.Screen name="+not-found" />
         </Stack>
         <StatusBar style="auto" />

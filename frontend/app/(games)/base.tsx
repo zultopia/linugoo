@@ -176,6 +176,8 @@ export default function GameMapPage() {
               "Belajar konsep sains dasar dengan tema kebudayaan Kalimantan."}
             {selectedClass === 4 &&
               "Belajar literasi digital dengan tema kebudayaan Sulawesi."}
+            {selectedClass === 5 &&
+              "Melanjutkan pembelajaran literasi digital dengan tema lanjutan."}
             {selectedClass === 6 &&
               "Belajar literasi finansial dengan tema kebudayaan Maluku dan Papua."}
           </Text>

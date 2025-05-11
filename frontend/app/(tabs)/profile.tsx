@@ -16,11 +16,13 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuth } from '../../context/AuthContext';
+import { Ionicons } from '@expo/vector-icons';
 
 const { width } = Dimensions.get('window');
 const isSmallDevice = width < 768;
 
-// Interface for profile data
+const API_URL = 'http://localhost:5000';
+
 interface ProfileData {
   id: string;
   username: string;
@@ -28,11 +30,12 @@ interface ProfileData {
   name: string;
   phone: string;
   role: string;
+  profileImage?: string;
 }
 
 export default function ProfilePage() {
   const router = useRouter();
-  const { token, logout, isLoading: authLoading } = useAuth();
+  const { token, logout, isLoading: authLoading, user } = useAuth();
   const [profileData, setProfileData] = useState<ProfileData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -40,11 +43,18 @@ export default function ProfilePage() {
   // Fetch profile data
   useEffect(() => {
     const fetchProfile = async () => {
-      if (!token) return;
+      if (!token) {
+        console.log('No token available for profile fetch');
+        setIsLoading(false);
+        return;
+      }
       
       setIsLoading(true);
       try {
-        const response = await fetch(process.env.API_URL + '/users/profile', {
+        console.log('Fetching profile with token:', token);
+        console.log('Using API URL:', API_URL);
+        
+        const response = await fetch(`${API_URL}/users/profile`, {
           method: 'GET',
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -52,11 +62,14 @@ export default function ProfilePage() {
           },
         });
         
+        console.log('Profile response status:', response.status);
+        
         if (!response.ok) {
           throw new Error('Failed to fetch profile data');
         }
         
         const data = await response.json();
+        console.log('Profile data:', data);
         setProfileData(data.user);
       } catch (error) {
         console.error('Error fetching profile:', error);
@@ -93,6 +106,41 @@ export default function ProfilePage() {
     } else {
       router.push('/(games)/base');
     }
+  };
+
+  // Handle retry
+  const handleRetry = () => {
+    setError(null);
+    // Re-fetch profile
+    const fetchProfile = async () => {
+      if (!token) return;
+      
+      setIsLoading(true);
+      try {
+        const response = await fetch(`${API_URL}/users/profile`, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        });
+        
+        if (!response.ok) {
+          throw new Error('Failed to fetch profile data');
+        }
+        
+        const data = await response.json();
+        setProfileData(data.user);
+        setError(null);
+      } catch (error) {
+        console.error('Error fetching profile:', error);
+        setError('Failed to load profile. Please try again later.');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchProfile();
   };
 
   if (authLoading || isLoading) {
@@ -155,11 +203,7 @@ export default function ProfilePage() {
               style={styles.logoutButtonNav}
               onPress={handleLogout}
             >
-              <Image 
-                source={require('../../assets/images/logout.png')} 
-                style={styles.iconButton} 
-                resizeMode="contain"
-              />
+              <Ionicons name="log-out-outline" size={24} color="#721c24" />
             </TouchableOpacity>
           </View>
         ) : (
@@ -179,11 +223,7 @@ export default function ProfilePage() {
               style={styles.iconButton} 
               onPress={handleLogout}
             >
-              <Image 
-                source={require('../../assets/images/logout.png')} 
-                style={styles.icon} 
-                resizeMode="contain"
-              />
+              <Ionicons name="log-out-outline" size={24} color="#721c24" />
             </TouchableOpacity>
           </View>
         )}
@@ -201,7 +241,7 @@ export default function ProfilePage() {
             <Text style={styles.errorText}>{error}</Text>
             <TouchableOpacity 
               style={[styles.retryButton, { backgroundColor: brandColor }]}
-              onPress={() => router.reload()}
+              onPress={handleRetry}
             >
               <Text style={styles.retryButtonText}>Coba Lagi</Text>
             </TouchableOpacity>
@@ -211,11 +251,18 @@ export default function ProfilePage() {
             {/* Profile Header */}
             <View style={styles.profileHeader}>
               <View style={styles.profileAvatarContainer}>
-                <View style={[styles.profileAvatar, { backgroundColor: brandColor }]}>
-                  <Text style={styles.profileInitials}>
-                    {profileData?.name ? profileData.name.substring(0, 1).toUpperCase() : '?'}
-                  </Text>
-                </View>
+                {profileData?.profileImage ? (
+                  <Image
+                    source={{ uri: profileData.profileImage }}
+                    style={styles.profileAvatar}
+                  />
+                ) : (
+                  <View style={[styles.profileAvatar, { backgroundColor: brandColor }]}>
+                    <Text style={styles.profileInitials}>
+                      {profileData?.name ? profileData.name.substring(0, 1).toUpperCase() : '?'}
+                    </Text>
+                  </View>
+                )}
               </View>
               <Text style={styles.profileName}>{profileData?.name || 'User Name'}</Text>
               <Text style={styles.profileRole}>{profileData?.role || 'Role'}</Text>
@@ -300,27 +347,45 @@ export default function ProfilePage() {
               <View style={styles.card}>
                 <Text style={styles.cardTitle}>Pengaturan</Text>
                 
-                <TouchableOpacity style={styles.settingItem}>
-                  <Image 
-                    source={require('../../assets/images/profile.png')} 
-                    style={styles.settingIcon} 
-                  />
+                <TouchableOpacity 
+                  style={styles.settingItem}
+                  onPress={() => {
+                    if (profileData?.role === 'Guru') {
+                      router.push('/(teacher)/edit-profile');
+                    } else {
+                      router.push('/(teacher)/edit-profile');
+                    }
+                  }}
+                >
+                  <Ionicons name="person-outline" size={24} color="#333" />
                   <Text style={styles.settingText}>Ubah Profil</Text>
                 </TouchableOpacity>
                 
-                <TouchableOpacity style={styles.settingItem}>
-                  <Image 
-                    source={require('../../assets/images/lock.png')} 
-                    style={styles.settingIcon} 
-                  />
+                <TouchableOpacity 
+                  style={styles.settingItem}
+                  onPress={() => {
+                    if (profileData?.role === 'Guru') {
+                      router.push('/(teacher)/change-password');
+                    } else {
+                      router.push('/(teacher)/change-password');
+                    }
+                  }}
+                >
+                  <Ionicons name="lock-closed-outline" size={24} color="#333" />
                   <Text style={styles.settingText}>Ubah Password</Text>
                 </TouchableOpacity>
                 
-                <TouchableOpacity style={styles.settingItem}>
-                  <Image 
-                    source={require('../../assets/images/help.png')} 
-                    style={styles.settingIcon} 
-                  />
+                <TouchableOpacity 
+                  style={styles.settingItem}
+                  onPress={() => {
+                    if (profileData?.role === 'Guru') {
+                      router.push('/(teacher)/help');
+                    } else {
+                      router.push('/(teacher)/help');
+                    }
+                  }}
+                >
+                  <Ionicons name="help-circle-outline" size={24} color="#333" />
                   <Text style={styles.settingText}>Bantuan</Text>
                 </TouchableOpacity>
                 
@@ -328,10 +393,7 @@ export default function ProfilePage() {
                   style={[styles.settingItem, styles.logoutItem]}
                   onPress={handleLogout}
                 >
-                  <Image 
-                    source={require('../../assets/images/logout.png')} 
-                    style={styles.settingIcon} 
-                  />
+                  <Ionicons name="log-out-outline" size={24} color={brandColor} />
                   <Text style={[styles.settingText, { color: brandColor }]}>Keluar</Text>
                 </TouchableOpacity>
               </View>
@@ -445,8 +507,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   iconButton: {
-    width: 24,
-    height: 24,
+    marginHorizontal: 8,
   },
   icon: {
     width: 24,
@@ -567,6 +628,7 @@ const styles = StyleSheet.create({
   settingText: {
     fontSize: 16,
     color: '#333',
+    marginLeft: 15,
   },
   logoutItem: {
     borderBottomWidth: 0,

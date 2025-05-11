@@ -1,19 +1,17 @@
 require("dotenv").config();
-const functions = require("firebase-functions");
 const express = require("express");
 const cors = require("cors");
 const bodyParser = require("body-parser");
-const authRoutes = require("./routes/auth.routes");
-const userRoutes = require("./routes/user.routes");
 const morgan = require("morgan");
+
 const app = express();
 
-// Middleware
-app.use(express.json());
-app.use(morgan("dev"));
+const isProduction = process.env.NODE_ENV === 'production';
+const clientUrl = process.env.CLIENT_URL || (isProduction ? 'your-production-url' : 'http://localhost:3000');
+
 app.use(cors({
   origin: [
-    process.env.CLIENT_URL || functions.config().client_url,
+    clientUrl,
     "http://localhost:19006",
     "http://localhost:5000",
   ],
@@ -21,14 +19,28 @@ app.use(cors({
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 app.use(bodyParser.json());
+app.use(morgan("dev"));
+
+const authRoutes = require("./routes/auth.routes");
+const userRoutes = require("./routes/user.routes");
+
 app.use("/auth", authRoutes);
 app.use("/users", userRoutes);
 
 app.get("/", (req, res) => {
-  res.send("API is running...");
+  res.json({ message: "API is running..." });
 });
 
-exports.api = functions
-    .runWith({ memory: "1GB" })
-    .https.onRequest(app);
+app.use((err, req, res, next) => {
+  const statusCode = err.statusCode || 500;
+  console.error(err.message, err.stack);
+  res.status(statusCode).json({ 
+    message: err.message,
+    stack: isProduction ? '🥞' : err.stack
+  });
+});
+
+module.exports = app;

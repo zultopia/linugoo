@@ -1,12 +1,24 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, TouchableOpacity, Image, StyleSheet, SafeAreaView, ScrollView, Dimensions, Platform, ActivityIndicator, ImageBackground } from 'react-native';
+import { 
+  View, 
+  Text, 
+  TouchableOpacity, 
+  Image, 
+  StyleSheet, 
+  SafeAreaView, 
+  ScrollView, 
+  Dimensions, 
+  Platform, 
+  ActivityIndicator,
+  useWindowDimensions 
+} from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuth } from '../../context/AuthContext';
-import { SvgXml } from 'react-native-svg'; 
+import { LineChart, BarChart, PieChart } from 'react-native-chart-kit';
+import { Ionicons } from '@expo/vector-icons';
 import Navbar from '../components/navbar';
 
-const { width } = Dimensions.get('window');
-const isSmallDevice = width < 768;
+const { width: screenWidth } = Dimensions.get('window');
 
 interface Student {
   id: string;
@@ -16,11 +28,90 @@ interface Student {
   role: string;
 }
 
+const dummyData = {
+  monthlyProgress: {
+    labels: ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun"],
+    datasets: [{
+      data: [72, 75, 78, 82, 85, 88],
+      color: (opacity = 1) => `rgba(199, 0, 57, ${opacity})`,
+      strokeWidth: 2
+    }]
+  },
+  literacyData: [
+    {
+      name: "Baca Tulis",
+      value: 30,
+      color: "#FF6384",
+      legendFontColor: "#333",
+      legendFontSize: 12
+    },
+    {
+      name: "Numerasi",
+      value: 25,
+      color: "#36A2EB",
+      legendFontColor: "#333",
+      legendFontSize: 12
+    },
+    {
+      name: "Sains",
+      value: 15,
+      color: "#FFCE56",
+      legendFontColor: "#333",
+      legendFontSize: 12
+    },
+    {
+      name: "Digital",
+      value: 20,
+      color: "#4BC0C0",
+      legendFontColor: "#333",
+      legendFontSize: 12
+    },
+    {
+      name: "Finansial",
+      value: 10,
+      color: "#9966FF",
+      legendFontColor: "#333",
+      legendFontSize: 12
+    }
+  ],
+  weeklyActivity: {
+    labels: ["Sen", "Sel", "Rab", "Kam", "Jum"],
+    datasets: [{
+      data: [25, 28, 26, 30, 22]
+    }]
+  }
+};
+
 const DashboardPage = () => {
   const router = useRouter();
-  const { user, token, isLoading: authLoading } = useAuth();
+  const { user, token, logout, isLoading: authLoading } = useAuth();
   const [students, setStudents] = useState<Student[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const { width, height } = useWindowDimensions();
+  
+  const isSmallDevice = width < 768;
+  const isMediumDevice = width >= 768 && width < 1024;
+  const isLargeDevice = width >= 1024;
+  
+  const chartWidth = isSmallDevice ? width - 40 : isMediumDevice ? width - 60 : Math.min(width * 0.4, 600);
+  const chartHeight = isSmallDevice ? 200 : 220;
+
+  const chartConfig = {
+    backgroundColor: "#FFFFFF",
+    backgroundGradientFrom: "#FFFFFF",
+    backgroundGradientTo: "#FFFFFF",
+    decimalPlaces: 0,
+    color: (opacity = 1) => `rgba(199, 0, 57, ${opacity})`,
+    labelColor: (opacity = 1) => `rgba(51, 51, 51, ${opacity})`,
+    style: {
+      borderRadius: 16
+    },
+    propsForDots: {
+      r: "4",
+      strokeWidth: "2",
+      stroke: "#C70039"
+    }
+  };
 
   useEffect(() => {
     if (!authLoading && user && user.role !== 'Guru') {
@@ -34,7 +125,7 @@ const DashboardPage = () => {
       
       setIsLoading(true);
       try {
-        const response = await fetch(process.env.API_URL + '/users/students', {
+        const response = await fetch(`${process.env.EXPO_PUBLIC_API_URL || 'http://localhost:5000'}/api/users/students`, {
           method: 'GET',
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -85,76 +176,246 @@ const DashboardPage = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Using the Navbar component */}
       <Navbar onNavigate={handleNavigation} />
 
-      <ScrollView style={styles.scrollView}>
+      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         <View style={styles.backgroundPattern}>
-          <Image 
-            source={require("../../assets/images/background.svg")}
-            style={styles.backgroundSvg}
-            resizeMode="cover"
-          />
+          <View style={styles.backgroundContainer}>
+            {[...Array(Math.ceil(height / 500))].map((_, index) => (
+              <Image 
+                key={index}
+                source={require("../../assets/images/background.svg")}
+                style={[styles.backgroundTile, { top: index * 500 }]}
+                resizeMode="repeat"
+              />
+            ))}
+          </View>
           
-          <View style={styles.contentContainer}>
+          <View style={[styles.contentContainer, { paddingHorizontal: isSmallDevice ? 20 : 40 }]}>
             <View style={styles.welcomeContainer}>
-              <View>
-                <Text style={styles.welcomeText}>Selamat Datang di</Text>
-                <Text style={styles.brandText}>linugoo</Text>
+              <View style={[styles.welcomeCard, { width: isSmallDevice ? '100%' : '70%' }]}>
+                <View style={styles.welcomeTextContainer}>
+                  <Text style={styles.welcomeText}>Selamat Datang di</Text>
+                  <Text style={styles.brandText}>linugoo</Text>
+                </View>
+                {user && (
+                  <View style={styles.userInfo}>
+                    <View style={styles.avatar}>
+                      <Text style={styles.avatarText}>
+                        {user.name ? user.name.charAt(0).toUpperCase() : 'G'}
+                      </Text>
+                    </View>
+                    <View style={styles.greetingContainer}>
+                      <Text style={styles.greetingText}>Hai, {user.name || user.username}! 👋</Text>
+                      <Text style={styles.roleText}>Guru Pengajar</Text>
+                    </View>
+                  </View>
+                )}
               </View>
             </View>
 
-            <View style={styles.cardsContainer}>
+            <View style={[styles.cardsContainer, { 
+              flexDirection: isSmallDevice ? 'column' : 'row',
+              alignItems: isSmallDevice ? 'stretch' : 'center'
+            }]}>
               <TouchableOpacity 
-                style={styles.cardJurnal}
+                style={[styles.cardJurnal, { 
+                  width: isSmallDevice ? '100%' : '48%',
+                  maxWidth: isLargeDevice ? 300 : undefined 
+                }]}
                 onPress={() => handleNavigation('jurnal')}
               >
                 <View style={styles.cardIconPlaceholder}>
-                  <SvgXml 
-                    xml={`<svg width="40" height="40" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M19 3H5C3.89 3 3 3.9 3 5V19C3 20.1 3.89 21 5 21H19C20.11 21 21 20.1 21 19V5C21 3.9 20.11 3 19 3ZM19 19H5V5H19V19ZM17 12H7V10H17V12ZM13 16H7V14H13V16ZM7 8H17V6H7V8Z" fill="#FFFFFF"/>
-                    </svg>`} 
-                    width={40} 
-                    height={40} 
-                  />
+                  <Ionicons name="journal-outline" size={40} color="#FFFFFF" />
                 </View>
                 <Text style={styles.cardText}>Jurnal</Text>
               </TouchableOpacity>
 
               <TouchableOpacity 
-                style={styles.cardSiswa}
+                style={[styles.cardSiswa, { 
+                  width: isSmallDevice ? '100%' : '48%',
+                  maxWidth: isLargeDevice ? 300 : undefined 
+                }]}
                 onPress={() => handleNavigation('data-siswa')}
               >
                 <View style={styles.cardIconPlaceholder}>
-                  <SvgXml 
-                    xml={`<svg width="40" height="40" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2ZM12 5C13.66 5 15 6.34 15 8C15 9.66 13.66 11 12 11C10.34 11 9 9.66 9 8C9 6.34 10.34 5 12 5ZM12 19.2C9.5 19.2 7.29 17.92 6 15.98C6.03 13.99 10 12.9 12 12.9C13.99 12.9 17.97 13.99 18 15.98C16.71 17.92 14.5 19.2 12 19.2Z" fill="#FFFFFF"/>
-                    </svg>`} 
-                    width={40} 
-                    height={40} 
-                  />
+                  <Ionicons name="people-outline" size={40} color="#FFFFFF" />
                 </View>
                 <Text style={styles.cardText}>Data Siswa</Text>
               </TouchableOpacity>
             </View>
 
-            <View style={styles.statsContainer}>
-              <Text style={styles.statsTitle}>Statistik Kelas</Text>
+            <View style={[styles.quickStatsContainer, {
+              flexDirection: isSmallDevice ? 'column' : 'row',
+              gap: isSmallDevice ? 10 : 20
+            }]}>
+              <View style={[styles.quickStatCard, { width: isSmallDevice ? '100%' : 'auto' }]}>
+                <Ionicons name="school-outline" size={24} color="#C70039" />
+                <Text style={styles.quickStatNumber}>{students.length}</Text>
+                <Text style={styles.quickStatLabel}>Total Siswa</Text>
+              </View>
               
-              <View style={styles.statsCardsContainer}>
-                <View style={styles.statsCard}>
-                  <Text style={styles.statsNumber}>{students.length}</Text>
-                  <Text style={styles.statsLabel}>Total Siswa</Text>
-                </View>
+              <View style={[styles.quickStatCard, { width: isSmallDevice ? '100%' : 'auto' }]}>
+                <Ionicons name="book-outline" size={24} color="#4BC0C0" />
+                <Text style={styles.quickStatNumber}>78%</Text>
+                <Text style={styles.quickStatLabel}>Kemampuan Literasi</Text>
+              </View>
+              
+              <View style={[styles.quickStatCard, { width: isSmallDevice ? '100%' : 'auto' }]}>
+                <Ionicons name="calculator-outline" size={24} color="#FFCE56" />
+                <Text style={styles.quickStatNumber}>82%</Text>
+                <Text style={styles.quickStatLabel}>Kemampuan Numerasi</Text>
+              </View>
+            </View>
+
+            <View style={[styles.chartsSection, {
+              flexDirection: isLargeDevice ? 'row' : 'column',
+              gap: 20,
+              flexWrap: 'wrap'
+            }]}>
+              <View style={[styles.chartContainer, { 
+                width: isLargeDevice ? '48%' : '100%' 
+              }]}>
+                <Text style={styles.chartTitle}>Progress Literasi & Numerasi</Text>
+                <Text style={styles.chartSubtitle}>Perkembangan nilai rata-rata kelas dalam 6 bulan</Text>
+                <LineChart
+                  data={dummyData.monthlyProgress}
+                  width={chartWidth}
+                  height={chartHeight}
+                  chartConfig={chartConfig}
+                  bezier
+                  style={styles.chart}
+                  withInnerLines={false}
+                  withOuterLines={true}
+                  withVerticalLabels={true}
+                  withHorizontalLabels={true}
+                  withDots={true}
+                  withShadow={false}
+                  fromZero={true}
+                />
+              </View>
+
+              <View style={[styles.chartContainer, { 
+                width: isLargeDevice ? '48%' : '100%' 
+              }]}>
+                <Text style={styles.chartTitle}>Distribusi Pembelajaran per Pulau</Text>
+                <Text style={styles.chartSubtitle}>Progress siswa berdasarkan level pembelajaran</Text>
+                <PieChart
+                  data={dummyData.literacyData}
+                  width={chartWidth}
+                  height={chartHeight}
+                  chartConfig={chartConfig}
+                  accessor="value"
+                  backgroundColor="transparent"
+                  paddingLeft={isSmallDevice ? "0" : "15"}
+                  style={styles.chart}
+                />
+              </View>
+
+              <View style={[styles.chartContainer, { 
+                width: isLargeDevice ? '48%' : '100%' 
+              }]}>
+                <Text style={styles.chartTitle}>Partisipasi Siswa</Text>
+                <Text style={styles.chartSubtitle}>Jumlah siswa aktif dalam permainan edukatif</Text>
+                <BarChart
+                  data={dummyData.weeklyActivity}
+                  width={chartWidth}
+                  height={chartHeight}
+                  yAxisLabel=""
+                  yAxisSuffix=""
+                  chartConfig={{
+                    ...chartConfig,
+                    barPercentage: 0.7,
+                  }}
+                  style={styles.chart}
+                  showBarTops={true}
+                  showValuesOnTopOfBars={true}
+                  withInnerLines={true}
+                  segments={5}
+                />
+              </View>
+            </View>
+
+            <View style={[styles.bottomSection, {
+              flexDirection: isLargeDevice ? 'row' : 'column',
+              gap: 20
+            }]}>
+              <View style={[styles.metricsContainer, { 
+                width: isLargeDevice ? '58%' : '100%' 
+              }]}>
+                <Text style={styles.metricsTitle}>Capaian Pembelajaran Literasi & Numerasi</Text>
                 
-                <View style={styles.statsCard}>
-                  <Text style={styles.statsNumber}>15</Text>
-                  <Text style={styles.statsLabel}>Aktif Bulan Ini</Text>
+                <View style={styles.metricCard}>
+                  <View style={styles.metricIcon}>
+                    <Ionicons name="book" size={32} color="#4CAF50" />
+                  </View>
+                  <View style={styles.metricContent}>
+                    <Text style={styles.metricValue}>134</Text>
+                    <Text style={styles.metricLabel}>Buku Digital Dibaca</Text>
+                    <Text style={styles.metricChange}>+15 buku minggu ini</Text>
+                  </View>
                 </View>
+
+                <View style={styles.metricCard}>
+                  <View style={styles.metricIcon}>
+                    <Ionicons name="calculator" size={32} color="#2196F3" />
+                  </View>
+                  <View style={styles.metricContent}>
+                    <Text style={styles.metricValue}>256</Text>
+                    <Text style={styles.metricLabel}>Soal Matematika Diselesaikan</Text>
+                    <Text style={styles.metricChange}>Akurasi 85% (+3%)</Text>
+                  </View>
+                </View>
+
+                <View style={styles.metricCard}>
+                  <View style={styles.metricIcon}>
+                    <Ionicons name="trending-up" size={32} color="#FFC107" />
+                  </View>
+                  <View style={styles.metricContent}>
+                    <Text style={styles.metricValue}>12</Text>
+                    <Text style={styles.metricLabel}>Siswa Naik Level</Text>
+                    <Text style={styles.metricChange}>Dari Sumatra ke Jawa</Text>
+                  </View>
+                </View>
+              </View>
+
+              <View style={[styles.eventsContainer, { 
+                width: isLargeDevice ? '38%' : '100%',
+                marginTop: isSmallDevice ? 50 : 0
+              }]}>
+                <Text style={styles.eventsTitle}>Kegiatan Pembelajaran</Text>
                 
-                <View style={styles.statsCard}>
-                  <Text style={styles.statsNumber}>75%</Text>
-                  <Text style={styles.statsLabel}>Tingkat Kelulusan</Text>
+                <View style={styles.eventCard}>
+                  <View style={styles.eventDate}>
+                    <Text style={styles.eventDay}>18</Text>
+                    <Text style={styles.eventMonth}>DES</Text>
+                  </View>
+                  <View style={styles.eventContent}>
+                    <Text style={styles.eventTitle}>Lomba Cerdas Cermat Literasi</Text>
+                    <Text style={styles.eventTime}>09:00 - 11:00 WIB</Text>
+                  </View>
+                </View>
+
+                <View style={styles.eventCard}>
+                  <View style={styles.eventDate}>
+                    <Text style={styles.eventDay}>22</Text>
+                    <Text style={styles.eventMonth}>DES</Text>
+                  </View>
+                  <View style={styles.eventContent}>
+                    <Text style={styles.eventTitle}>Festival Numerasi Nusantara</Text>
+                    <Text style={styles.eventTime}>08:00 - 12:00 WIB</Text>
+                  </View>
+                </View>
+
+                <View style={styles.eventCard}>
+                  <View style={styles.eventDate}>
+                    <Text style={styles.eventDay}>28</Text>
+                    <Text style={styles.eventMonth}>DES</Text>
+                  </View>
+                  <View style={styles.eventContent}>
+                    <Text style={styles.eventTitle}>Pameran Karya Literasi Siswa</Text>
+                    <Text style={styles.eventTime}>10:00 - 15:00 WIB</Text>
+                  </View>
                 </View>
               </View>
             </View>
@@ -186,55 +447,107 @@ const styles = StyleSheet.create({
   },
   backgroundPattern: {
     flex: 1,
-    width: '100%',
-    backgroundColor: '#FFF5E0',
-    position: 'relative', 
+    position: 'relative',
   },
-  backgroundSvg: {
+  backgroundContainer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 1,
+  },
+  backgroundTile: {
     position: 'absolute',
     width: '100%',
-    height: '100%',
-    opacity: 0.8, 
-    zIndex: 1, 
+    height: 500,
+    opacity: 0.7,
   },
   contentContainer: {
     flex: 1,
-    padding: 20,
-    zIndex: 2, 
+    zIndex: 2,
+    paddingVertical: 20,
   },
   welcomeContainer: {
-    paddingVertical: 40,
-    paddingHorizontal: 20,
+    marginBottom: 30,
+  },
+  welcomeCard: {
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    borderRadius: 20,
+    padding: 25,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.1,
+        shadowRadius: 8,
+      },
+      android: {
+        elevation: 5,
+      },
+      web: {
+        boxShadow: '0px 4px 8px rgba(0, 0, 0, 0.1)',
+      },
+    }),
+  },
+  welcomeTextContainer: {
+    marginBottom: 20,
   },
   welcomeText: {
-    fontSize: 28,
-    fontWeight: 'bold',
+    fontSize: 22,
+    fontWeight: '600',
     color: '#14213D',
+    marginBottom: 5,
   },
   brandText: {
-    fontSize: 42,
+    fontSize: 38,
     fontWeight: 'bold',
     color: '#C70039',
   },
-  teacherName: {
-    fontSize: 18,
-    color: '#555',
-    marginTop: 10,
+  userInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderTopWidth: 1,
+    borderTopColor: '#F0F0F0',
+    paddingTop: 20,
   },
-  cardsContainer: {
-    flexDirection: isSmallDevice ? 'column' : 'row',
+  avatar: {
+    width: 50,
+    height: 50,
+    backgroundColor: '#C70039',
+    borderRadius: 25,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 20,
+    marginRight: 15,
+  },
+  avatarText: {
+    color: '#FFFFFF',
+    fontSize: 20,
+    fontWeight: 'bold',
+  },
+  greetingContainer: {
+    flex: 1,
+  },
+  greetingText: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#14213D',
+  },
+  roleText: {
+    fontSize: 14,
+    color: '#666',
+    marginTop: 2,
+  },
+  cardsContainer: {
+    justifyContent: 'center',
     gap: 20,
+    marginBottom: 30,
   },
   cardJurnal: {
     backgroundColor: '#14213D',
     borderRadius: 15,
-    padding: 40,
-    width: isSmallDevice ? '100%' : 250,
-    height: 250,
+    padding: 30,
+    height: 180,
     justifyContent: 'center',
     alignItems: 'center',
     ...Platform.select({
@@ -255,9 +568,8 @@ const styles = StyleSheet.create({
   cardSiswa: {
     backgroundColor: '#C70039',
     borderRadius: 15,
-    padding: 40,
-    width: isSmallDevice ? '100%' : 250,
-    height: 250,
+    padding: 30,
+    height: 180,
     justifyContent: 'center',
     alignItems: 'center',
     ...Platform.select({
@@ -276,27 +588,22 @@ const styles = StyleSheet.create({
     }),
   },
   cardIconPlaceholder: {
-    width: 80,
-    height: 80,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  cardIconText: {
-    width: 40,
-    height: 40,
+    marginBottom: 15,
   },
   cardText: {
     color: '#FFFFFF',
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: 'bold',
   },
-  statsContainer: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 15,
+  quickStatsContainer: {
+    marginBottom: 30,
+  },
+  quickStatCard: {
+    flex: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
     padding: 20,
-    marginTop: 30,
-    marginBottom: 20,
+    borderRadius: 12,
+    alignItems: 'center',
     ...Platform.select({
       ios: {
         shadowColor: '#000',
@@ -312,51 +619,170 @@ const styles = StyleSheet.create({
       },
     }),
   },
-  statsTitle: {
+  quickStatNumber: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#14213D',
+    marginVertical: 5,
+  },
+  quickStatLabel: {
+    fontSize: 12,
+    color: '#666',
+    textAlign: 'center',
+  },
+  chartsSection: {
+    marginBottom: 30,
+  },
+  chartContainer: {
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    borderRadius: 15,
+    padding: 20,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+      },
+      android: {
+        elevation: 3,
+      },
+      web: {
+        boxShadow: '0px 2px 4px rgba(0, 0, 0, 0.1)',
+      },
+    }),
+  },
+  chartTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 5,
+  },
+  chartSubtitle: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 15,
+  },
+  chart: {
+    marginVertical: 8,
+    borderRadius: 16,
+    alignSelf: 'center',
+  },
+  bottomSection: {
+    marginBottom: 50,
+  },
+  metricsContainer: {
+    flex: 1,
+  },
+  metricsTitle: {
     fontSize: 20,
     fontWeight: 'bold',
     color: '#333',
-    marginBottom: 20,
+    marginBottom: 15,
   },
-  statsCardsContainer: {
-    flexDirection: isSmallDevice ? 'column' : 'row',
-    justifyContent: 'space-between',
-  },
-  statsCard: {
-    backgroundColor: '#F8F9FA',
+  metricCard: {
+    flexDirection: 'row',
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
     padding: 20,
-    borderRadius: 10,
-    width: isSmallDevice ? '100%' : '30%',
+    borderRadius: 12,
+    marginBottom: 15,
     alignItems: 'center',
-    marginBottom: isSmallDevice ? 15 : 0,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+      },
+      android: {
+        elevation: 3,
+      },
+      web: {
+        boxShadow: '0px 2px 4px rgba(0, 0, 0, 0.1)',
+      },
+    }),
   },
-  statsNumber: {
-    fontSize: 28,
+  metricIcon: {
+    marginRight: 15,
+  },
+  metricContent: {
+    flex: 1,
+  },
+  metricValue: {
+    fontSize: 24,
     fontWeight: 'bold',
-    color: '#C70039',
-    marginBottom: 5,
+    color: '#14213D',
   },
-  statsLabel: {
+  metricLabel: {
     fontSize: 14,
-    color: '#555',
+    color: '#666',
+    marginVertical: 2,
   },
-  logoutButton: {
+  metricChange: {
+    fontSize: 12,
+    color: '#4CAF50',
+  },
+  eventsContainer: {
+    flex: 1,
+  },
+  eventsTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 15,
+  },
+  eventCard: {
+    flexDirection: 'row',
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    padding: 20,
+    borderRadius: 12,
+    marginBottom: 15,
+    alignItems: 'center',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+      },
+      android: {
+        elevation: 3,
+      },
+      web: {
+        boxShadow: '0px 2px 4px rgba(0, 0, 0, 0.1)',
+      },
+    }),
+  },
+  eventDate: {
     backgroundColor: '#C70039',
     padding: 15,
     borderRadius: 10,
+    marginRight: 15,
     alignItems: 'center',
-    marginTop: 20,
-    marginBottom: 50,
+    width: 60,
   },
-  logoutButtonText: {
+  eventDay: {
+    fontSize: 20,
+    fontWeight: 'bold',
     color: '#FFFFFF',
+  },
+  eventMonth: {
+    fontSize: 12,
+    color: '#FFFFFF',
+  },
+  eventContent: {
+    flex: 1,
+  },
+  eventTitle: {
     fontSize: 16,
     fontWeight: 'bold',
+    color: '#333',
+  },
+  eventTime: {
+    fontSize: 14,
+    color: '#666',
+    marginTop: 2,
   },
 });
 
 export default DashboardPage;
-
-function logout() {
-  throw new Error('Function not implemented.');
-}

@@ -11,10 +11,10 @@ import {
   StatusBar,
   Dimensions,
   ScrollView,
-} from "react-native";
-import { useNavigation } from "@react-navigation/native";
-import Svg, { Circle } from "react-native-svg";
-import InteractiveMapBackground from "@/app/components/games/InteractiveMapBackground";
+} from 'react-native';
+import { useRouter, useLocalSearchParams } from 'expo-router';
+import Svg, { Circle } from 'react-native-svg';
+import InteractiveMapBackground from '@/app/components/games/InteractiveMapBackground';
 
 const windowWidth = Dimensions.get("window").width;
 const isMobile = windowWidth < 768;
@@ -38,15 +38,13 @@ const classData = [
     backgroundImage: require("../../../../assets/images/kelas1.svg"),
   },
   {
-    id: "2",
-    number: "3",
-    title: "Bandung",
-    subtitle: "Jawa Barat",
-    culturalItem: "Batik Motif Megamendung",
-    culturalDescription:
-      "Megamendung adalah motif batik yang berasal dari Cirebon dan dipengaruhi oleh budaya Tiongkok. Motif awan yang berlapis-lapis dalam batik ini melambangkan hujan yang membawa kesuburan bagi pertanian. Selain itu, awan dalam budaya Tiongkok melambangkan nirwana, kehidupan abadi, dan kebebasan.",
-    story:
-      "Setelah berpetualang di Jakarta, kini Lino tiba di Bandung, kota yang terkenal dengan keindahan alamnya, udara yang sejuk, serta makanan lezat seperti Batagor yang renyah dan Surabi yang manis. Dengan penuh semangat, ia mulai menjelajahi setiap sudut kota, dari alun-alun hingga pasar tradisional, mencicipi berbagai makanan khas dan berinteraksi dengan penduduk setempat. Namun, ada satu tantangan besar yang harus ia selesaikan: ia harus mengasah keterampilan berhitungnya dalam sebuah petualangan penuh angka dan teka-teki seru yang tersebar di berbagai tempat menarik di kota ini!",
+    id: '2',
+    number: '2',
+    title: 'Bandung',
+    subtitle: 'Jawa Barat',
+    culturalItem: 'Batik Motif Megamendung',
+    culturalDescription: 'Megamendung adalah motif batik yang berasal dari Cirebon dan dipengaruhi oleh budaya Tiongkok. Motif awan yang berlapis-lapis dalam batik ini melambangkan hujan yang membawa kesuburan bagi pertanian. Selain itu, awan dalam budaya Tiongkok melambangkan nirwana, kehidupan abadi, dan kebebasan.',
+    story: 'Setelah berpetualang di Jakarta, kini Lino tiba di Bandung, kota yang terkenal dengan keindahan alamnya, udara yang sejuk, serta makanan lezat seperti Batagor yang renyah dan Surabi yang manis. Dengan penuh semangat, ia mulai menjelajahi setiap sudut kota, dari alun-alun hingga pasar tradisional, mencicipi berbagai makanan khas dan berinteraksi dengan penduduk setempat. Namun, ada satu tantangan besar yang harus ia selesaikan: ia harus mengasah keterampilan berhitungnya dalam sebuah petualangan penuh angka dan teka-teki seru yang tersebar di berbagai tempat menarik di kota ini!',
     progress: {
       reading: 80,
       writing: 45,
@@ -55,15 +53,13 @@ const classData = [
     backgroundImage: require("../../../../assets/images/kelas2.svg"),
   },
   {
-    id: "3",
-    number: "4",
-    title: "Palangka Raya",
-    subtitle: "Kalimantan Tengah",
-    culturalItem: "Baju Sangkarut",
-    culturalDescription:
-      "Baju Sangkarut adalah pakaian adat khas suku Dayak yang terbuat dari kulit kayu atau kain dengan hiasan motif khas, seperti ukiran alam dan simbol budaya Dayak. Baju ini biasanya dikenakan dalam upacara adat, tarian, atau ritual sebagai simbol keberanian, spiritualitas, dan identitas suku Dayak.",
-    story:
-      'Petualangan Lino berlanjut ke Palangka Raya, Kalimantan Tengah, daerah yang terkenal dengan hutan tropisnya yang lebat dan budaya Dayak yang kaya. Saat berjalan-jalan di sekitar Sungai Kahayan, ia melihat sekelompok anak sedang melakukan eksperimen seru dengan air dan berbagai benda.\n\n"Kami sedang melakukan eksperimen untuk melihat benda apa saja yang bisa mengapung dan tenggelam," kata salah satu anak.\n\nLino sangat penasaran! Ia ingin ikut serta dan menguji berbagai benda seperti batu, kayu, dan bahkan daun kelapa. Tapi sebelum itu, ia ingin tahu: menurutmu, benda apa saja yang bisa mengapung, dan mana yang akan tenggelam? Yuk, coba tebak sebelum melakukan eksperimen!',
+    id: '3',
+    number: '3',
+    title: 'Palangka Raya',
+    subtitle: 'Kalimantan Tengah',
+    culturalItem: 'Baju Sangkarut',
+    culturalDescription: 'Baju Sangkarut adalah pakaian adat khas suku Dayak yang terbuat dari kulit kayu atau kain dengan hiasan motif khas, seperti ukiran alam dan simbol budaya Dayak. Baju ini biasanya dikenakan dalam upacara adat, tarian, atau ritual sebagai simbol keberanian, spiritualitas, dan identitas suku Dayak.',
+    story: 'Petualangan Lino berlanjut ke Palangka Raya, Kalimantan Tengah, daerah yang terkenal dengan hutan tropisnya yang lebat dan budaya Dayak yang kaya. Saat berjalan-jalan di sekitar Sungai Kahayan, ia melihat sekelompok anak sedang melakukan eksperimen seru dengan air dan berbagai benda.\n\n"Kami sedang melakukan eksperimen untuk melihat benda apa saja yang bisa mengapung dan tenggelam," kata salah satu anak.\n\nLino sangat penasaran! Ia ingin ikut serta dan menguji berbagai benda seperti batu, kayu, dan bahkan daun kelapa. Tapi sebelum itu, ia ingin tahu: menurutmu, benda apa saja yang bisa mengapung, dan mana yang akan tenggelam? Yuk, coba tebak sebelum melakukan eksperimen!',
     progress: {
       reading: 80,
       writing: 45,
@@ -72,32 +68,43 @@ const classData = [
     backgroundImage: require("../../../../assets/images/kelas3.svg"),
   },
   {
-    id: "4",
-    number: "1",
-    title: "Makassar",
-    subtitle: "Sulawesi Selatan",
-    culturalItem: "Batik Motif La Galigo",
-    culturalDescription:
-      "Motif La Galigo adalah motif batik yang berasal dari Sulawesi Selatan. Motif ini menggambarkan sebuah karya sastra yang terkenal dari suku Bugis yang memiliki 300.000 cerita epik. La Galigo menceritakan tentang asal-usul Sangiang Serri, tradisi persembahan petani sebelum musim tanam.",
-    story:
-      "Setelah menyelesaikan petualangannya di Pulau Kalimantan dan mempelajari berbagai ilmu sains, Linu, si burung hantu cerdas, kini terbang menuju Pulau Sulawesi. Dari ketinggian, ia melihat hamparan laut biru yang luas, dengan ombak yang memecah di tepi pantai berpasir putih. Di kejauhan, tampak kapal-kapal kayu berlayar gagah, membawa hasil laut dan rempah-rempah yang menjadi kebanggaan daerah ini.\n\nSaat mendarat di pesisir Makassar, Linu merasakan semilir angin laut yang menyegarkan. Kota ini kaya akan sejarah dan kebudayaan, mulai dari kapal legendaris Phinisi, kuliner khas seperti Coto Makassar, hingga nilai-nilai luhur yang dijunjung tinggi oleh masyarakatnya. Di era modern ini, teknologi digital mulai mengambil peran dalam melestarikan dan memperkanalkan budaya Makassar ke dunia.\n\nPenasaran dengan bagaimana teknologi bisa membantu kehidupan masyarakat di sini, Linu memutuskan untuk menjelajah lebih dalam. Perjalanannya baru saja dimulai, dan di depan sana, berbagai pengalaman menarik telah menantinya!",
+    id: '4',
+    number: '4',
+    title: 'Makassar',
+    subtitle: 'Sulawesi Selatan',
+    culturalItem: 'Batik Motif La Galigo',
+    culturalDescription: 'Motif La Galigo adalah motif batik yang berasal dari Sulawesi Selatan. Motif ini menggambarkan sebuah karya sastra yang terkenal dari suku Bugis yang memiliki 300.000 cerita epik. La Galigo menceritakan tentang asal-usul Sangiang Serri, tradisi persembahan petani sebelum musim tanam.',
+    story: 'Setelah menyelesaikan petualangannya di Pulau Kalimantan dan mempelajari berbagai ilmu sains, Linu, si burung hantu cerdas, kini terbang menuju Pulau Sulawesi. Dari ketinggian, ia melihat hamparan laut biru yang luas, dengan ombak yang memecah di tepi pantai berpasir putih. Di kejauhan, tampak kapal-kapal kayu berlayar gagah, membawa hasil laut dan rempah-rempah yang menjadi kebanggaan daerah ini.\n\nSaat mendarat di pesisir Makassar, Linu merasakan semilir angin laut yang menyegarkan. Kota ini kaya akan sejarah dan kebudayaan, mulai dari kapal legendaris Phinisi, kuliner khas seperti Coto Makassar, hingga nilai-nilai luhur yang dijunjung tinggi oleh masyarakatnya. Di era modern ini, teknologi digital mulai mengambil peran dalam melestarikan dan memperkanalkan budaya Makassar ke dunia.\n\nPenasaran dengan bagaimana teknologi bisa membantu kehidupan masyarakat di sini, Linu memutuskan untuk menjelajah lebih dalam. Perjalanannya baru saja dimulai, dan di depan sana, berbagai pengalaman menarik telah menantinya!',
     progress: {
       reading: 80,
       writing: 45,
-      locked: true,
+      locked: true
     },
-    backgroundImage: require("../../../../assets/images/kelas4-5.svg"),
+    backgroundImage: require('../../../../assets/images/kelas4-5.svg'),
   },
   {
-    id: "5",
-    number: "5",
-    title: "Wanggar",
-    subtitle: "Papua Tengah",
-    culturalItem: "Holim",
-    culturalDescription:
-      "Holim adalah pakaian adat khas suku Dani di Papua, yang biasanya dikenakan oleh pria. Pakaian ini terbuat dari serat alam dan sering dipadukan dengan koteka, digunakan dalam upacara adat sebagai simbol budaya dan tradisi masyarakat Dani.",
-    story:
-      "Setelah menjelajahi keindahan Papua Barat, Linu, si burung hantu penjelajah, kembali mengepakkan sayapnya menuju Papua Tengah. Dari udara, ia melihat gugusan pegunungan tinggi, lembah hijau yang luas, dan sungai-sungai yang berkelok seperti jalur emas di antara hutan belantara. Saat mendekati kota Nabire, ibu kota Papua Tengah, Linu menyaksikan masyarakat setempat yang hidup berdampingan dengan alam, berburu ikan di perairan Teluk Cenderawasih dan berdagang hasil bumi di pasar tradisional.\n\nLinu tertarik untuk belajar lebih dalam tentang bagaimana masyarakat di Papua Tengah mengelola hasil alam mereka secara bijak. Ia penasaran, bagaimana mereka menabung dari hasil panen? Bagaimana cara mereka mengatur uang agar cukup untuk kebutuhan sehari-hari? Di sinilah petualangan baru dimulai!",
+    id: '5',
+    number: '5',
+    title: 'Daerah Lanjutan',
+    subtitle: 'Literasi Digital',
+    culturalItem: 'Teknologi Modern Indonesia',
+    culturalDescription: 'Di era modern ini, Indonesia sedang bertransformasi digital. Dari Sabang sampai Merauke, teknologi membawa perubahan positif dalam pendidikan, ekonomi, dan budaya. Literasi digital menjadi kunci untuk memastikan semua anak Indonesia dapat memanfaatkan teknologi dengan bijak dan bertanggung jawab.',
+    story: 'Lino melanjutkan perjalanannya untuk mempelajari lebih dalam tentang literasi digital. Kali ini, ia akan fokus pada bagaimana membedakan informasi yang benar dan hoax, serta pentingnya etika digital dalam bermedia sosial. Dengan pemahaman yang lebih baik tentang dunia digital, Lino siap menjadi generasi yang cerdas dan bertanggung jawab di era teknologi.',
+    progress: {
+      reading: 80,
+      writing: 45,
+      locked: true
+    },
+    backgroundImage: require('../../../../assets/images/kelas4-5.svg'),
+  },
+  {
+    id: '6',
+    number: '6',
+    title: 'Wanggar',
+    subtitle: 'Papua Tengah',
+    culturalItem: 'Holim',
+    culturalDescription: 'Holim adalah pakaian adat khas suku Dani di Papua, yang biasanya dikenakan oleh pria. Pakaian ini terbuat dari serat alam dan sering dipadukan dengan koteka, digunakan dalam upacara adat sebagai simbol budaya dan tradisi masyarakat Dani.',
+    story: 'Setelah menjelajahi keindahan Papua Barat, Linu, si burung hantu penjelajah, kembali mengepakkan sayapnya menuju Papua Tengah. Dari udara, ia melihat gugusan pegunungan tinggi, lembah hijau yang luas, dan sungai-sungai yang berkelok seperti jalur emas di antara hutan belantara. Saat mendekati kota Nabire, ibu kota Papua Tengah, Linu menyaksikan masyarakat setempat yang hidup berdampingan dengan alam, berburu ikan di perairan Teluk Cenderawasih dan berdagang hasil bumi di pasar tradisional.\n\nLinu tertarik untuk belajar lebih dalam tentang bagaimana masyarakat di Papua Tengah mengelola hasil alam mereka secara bijak. Ia penasaran, bagaimana mereka menabung dari hasil panen? Bagaimana cara mereka mengatur uang agar cukup untuk kebutuhan sehari-hari? Di sinilah petualangan baru dimulai!',
     progress: {
       reading: 80,
       writing: 45,
@@ -145,10 +152,13 @@ const CircleProgress = ({
   );
 };
 
-export default function ClassDetailPage({ route }) {
-  const navigation = useNavigation();
-  const [classInfo, setClassInfo] = useState(null);
-  const classId = route?.params?.id || "1";
+export default function ClassDetailPage() {
+  const router = useRouter();
+  const params = useLocalSearchParams();
+  const [classInfo, setClassInfo] = useState<any>(null);
+  
+  // Get class ID from params with fallback
+  const classId = params.id as string || '1';
 
   useEffect(() => {
     const currentClass = classData.find((c) => c.id === classId);
@@ -166,11 +176,11 @@ export default function ClassDetailPage({ route }) {
   }
 
   const handleStartLearning = () => {
-    navigation.navigate(`Class${classId}Lesson1`);
+    router.push(`/(games)/activities/${classId}/page`);
   };
 
   const handleGoBack = () => {
-    navigation.goBack();
+    router.back();
   };
 
   return (

@@ -1,6 +1,6 @@
 const { db } = require("../config/db.config");
+const bcrypt = require("bcrypt");
 
-// Mendapatkan user berdasarkan ID
 const getUserById = async (userId) => {
   try {
     const userDoc = await db.collection("users").doc(userId).get();
@@ -15,7 +15,57 @@ const getUserById = async (userId) => {
   }
 };
 
-// Mendapatkan semua siswa
+const updateUser = async (userId, updateData) => {
+  try {
+    const userRef = db.collection("users").doc(userId);
+    
+    const userDoc = await userRef.get();
+    if (!userDoc.exists) {
+      return null;
+    }
+    
+    await userRef.update({
+      ...updateData,
+      updatedAt: new Date()
+    });
+    
+    const updatedDoc = await userRef.get();
+    const updatedUser = { id: updatedDoc.id, ...updatedDoc.data() };
+    
+    const { password, ...userWithoutPassword } = updatedUser;
+    return userWithoutPassword;
+  } catch (error) {
+    throw new Error(`Error updating user: ${error.message}`);
+  }
+};
+
+const changePassword = async (userId, currentPassword, newPassword) => {
+  try {
+    const user = await getUserById(userId);
+    
+    if (!user) {
+      return { success: false, message: "User tidak ditemukan" };
+    }
+    
+    const isPasswordValid = await bcrypt.compare(currentPassword, user.password);
+    
+    if (!isPasswordValid) {
+      return { success: false, message: "Password saat ini salah" };
+    }
+    
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    
+    await db.collection("users").doc(userId).update({
+      password: hashedPassword,
+      updatedAt: new Date()
+    });
+    
+    return { success: true };
+  } catch (error) {
+    throw new Error(`Error changing password: ${error.message}`);
+  }
+};
+
 const getAllStudents = async () => {
   try {
     const studentsSnapshot = await db.collection("users")
@@ -29,7 +79,6 @@ const getAllStudents = async () => {
     const students = [];
     studentsSnapshot.forEach(doc => {
       const data = doc.data();
-      // Hilangkan password dari data yang dikembalikan
       const { password, ...studentWithoutPassword } = data;
       students.push({ id: doc.id, ...studentWithoutPassword });
     });
@@ -40,7 +89,6 @@ const getAllStudents = async () => {
   }
 };
 
-// Mendapatkan semua users
 const getAllUsers = async () => {
   try {
     const usersSnapshot = await db.collection("users").get();
@@ -52,7 +100,6 @@ const getAllUsers = async () => {
     const users = [];
     usersSnapshot.forEach(doc => {
       const data = doc.data();
-      // Hilangkan password dari data yang dikembalikan
       const { password, ...userWithoutPassword } = data;
       users.push({ id: doc.id, ...userWithoutPassword });
     });
@@ -65,6 +112,8 @@ const getAllUsers = async () => {
 
 module.exports = {
   getUserById,
+  updateUser,
+  changePassword,
   getAllStudents,
   getAllUsers
 };
