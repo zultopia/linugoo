@@ -2,7 +2,7 @@ import React from "react";
 import { View, ScrollView, Dimensions, StyleSheet, Image } from "react-native";
 // import MapBackgroundSvg from '../../assets/images/indonesia-map-bg.svg';
 
-const mapWidth = 1750;
+const mapWidth = 1000;
 const mapHeight = 750;
 const screenWidth = Dimensions.get("window").width;
 const isMobile = screenWidth < 768;
