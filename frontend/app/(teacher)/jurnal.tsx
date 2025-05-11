@@ -12,470 +12,987 @@ import {
   Platform,
   Dimensions,
   useWindowDimensions,
+  Modal,
+  ActivityIndicator,
+  FlatList,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
 import Navbar from '../components/navbar';
 import { router } from 'expo-router';
 
+const colors = {
+  primary: '#1a2d5e',
+  secondary: '#c1123d',
+  success: '#10B981',
+  warning: '#F59E0B',
+  info: '#0EA5E9',
+  purple: '#8B5CF6',
+  lightBg: '#F5F5F5',
+  white: '#FFFFFF',
+  gray: '#777777',
+  darkGray: '#333333',
+  lightGray: '#E5E5E5',
+};
+
+type EventCategory = {
+  color: string;
+  highlightColor: string;
+  textColor: string;
+  icon: string;
+};
+
+type EventCategories = {
+  [key: string]: EventCategory;
+};
+
+const eventCategories: EventCategories = {
+  literasi: { color: '#DCECEC', highlightColor: '#10B981', textColor: '#047857', icon: 'book-outline' },
+  matematika: { color: '#DDD8EC', highlightColor: '#8B5CF6', textColor: '#6D2869', icon: 'calculator-outline' },
+  evaluasi: { color: '#F2EAE0', highlightColor: '#F59E0B', textColor: '#B45309', icon: 'clipboard-outline' },
+  upacara: { color: '#DBEAF6', highlightColor: '#0EA5E9', textColor: '#0369A1', icon: 'flag-outline' },
+  olahraga: { color: '#FFE4E1', highlightColor: '#FF6B6B', textColor: '#D63447', icon: 'fitness-outline' },
+  sains: { color: '#E6F3FF', highlightColor: '#4B9CE2', textColor: '#1E5899', icon: 'flask-outline' },
+};
+
+interface ChatMessage {
+  id: number;
+  text: string;
+  isBot: boolean;
+  timestamp: string;
+}
+
+interface Event {
+  id: number;
+  title: string;
+  startTime: string;
+  endTime: string;
+  category: string;
+  description: string;
+  date: string;
+}
+
+interface StudentProgress {
+  [subject: string]: {
+    average: number;
+    needImprovement: string[];
+  };
+}
+
+interface WeekDay {
+  day: string;
+  date: string;
+  fullDate: string;
+  fullDateObj: Date;
+}
+
+interface MonthDay {
+  date: string;
+  fullDate: string;
+  fullDateObj: Date;
+  isToday: boolean;
+}
+
 const Jurnal = () => {
   const { width } = useWindowDimensions();
   const [isMobile, setIsMobile] = useState(width < 768);
-  const [activeTab, setActiveTab] = useState(0); // 0: Agenda, 1: Chat
+  const [activeTab, setActiveTab] = useState(0);
+  const [selectedTab, setSelectedTab] = useState('Week');
+  const [selectedDay, setSelectedDay] = useState(4);
+  const [message, setMessage] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [currentMonth, setCurrentMonth] = useState(new Date(2025, 0, 1)); 
+  const [currentWeekStart, setCurrentWeekStart] = useState(new Date(2025, 0, 24));
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([
+    {
+      id: 1,
+      text: 'Halo! Saya Lino, asisten AI untuk kurikulum dinamis. Saya akan membantu Anda menyesuaikan materi pembelajaran berdasarkan progress siswa dan panduan Kemdikbud. 🎓\n\nBeberapa hal yang bisa saya bantu:\n• Rekomendasi materi pembelajaran\n• Evaluasi progress siswa\n• Penyesuaian kurikulum',
+      isBot: true,
+      timestamp: new Date().toLocaleTimeString(),
+    },
+  ]);
+  
+  const [events, setEvents] = useState<{ [key: string]: Event[] }>({
+    '2025-01-26': [
+      {
+        id: 1,
+        title: 'Literasi Pagi',
+        startTime: '08:00',
+        endTime: '09:00',
+        category: 'literasi',
+        description: 'Membaca nyaring dan pemahaman bacaan',
+        date: '2025-01-27'
+      },
+      {
+        id: 2,
+        title: 'Matematika',
+        startTime: '09:00',
+        endTime: '11:00',
+        category: 'matematika',
+        description: 'Perkalian dan pembagian',
+        date: '2025-01-27'
+      }
+    ],
+    '2025-01-27': [
+      {
+        id: 3,
+        title: 'Istirahat & Olahraga',
+        startTime: '11:00',
+        endTime: '12:00',
+        category: 'olahraga',
+        description: 'Senam ringan dan permainan',
+        date: '2025-01-27'
+      },
+      {
+        id: 4,
+        title: 'Sains',
+        startTime: '13:00',
+        endTime: '14:00',
+        category: 'sains',
+        description: 'Eksperimen sederhana tentang air',
+        date: '2025-01-27'
+      }
+    ],
+    '2025-01-28': [
+      {
+        id: 5,
+        title: 'Upacara Bendera',
+        startTime: '07:00',
+        endTime: '08:00',
+        category: 'upacara',
+        description: 'Upacara bendera mingguan',
+        date: '2025-01-28'
+      },
+      {
+        id: 6,
+        title: 'Evaluasi Mingguan',
+        startTime: '10:00',
+        endTime: '11:00',
+        category: 'evaluasi',
+        description: 'Tes pemahaman materi minggu ini',
+        date: '2025-01-28'
+      }
+    ]
+  });
+  const [showEventModal, setShowEventModal] = useState(false);
+  const [selectedCell, setSelectedCell] = useState<{ date: string; startTime: string; endTime?: string } | null>(null);
+  const [newEventTitle, setNewEventTitle] = useState('');
+  const [newEventCategory, setNewEventCategory] = useState('literasi');
+  const [newEventDescription, setNewEventDescription] = useState('');
+  const [selectingEndTime, setSelectingEndTime] = useState(false);
+  const [showMonthPicker, setShowMonthPicker] = useState(false);
+  const [selectedMonth, setSelectedMonth] = useState(currentMonth.getMonth());
+  const [selectedYear, setSelectedYear] = useState(currentMonth.getFullYear());
+  
+  const [studentProgress] = useState<StudentProgress>({
+    literasi: { average: 75, needImprovement: ['membaca pemahaman', 'menulis kreatif'] },
+    matematika: { average: 68, needImprovement: ['perkalian', 'pembagian'] },
+    sains: { average: 82, needImprovement: ['eksperimen'] },
+  });
 
-  // Update isMobile when screen size changes
   useEffect(() => {
     setIsMobile(width < 768);
   }, [width]);
-  const [selectedTab, setSelectedTab] = useState('Week');
-  const [selectedDay, setSelectedDay] = useState(4); // Wednesday is selected by default (index 4)
-  const [message, setMessage] = useState('');
-  const [chatMessages, setChatMessages] = useState([
-    {
-      id: 1,
-      text: 'Halo, Aku Lino! 👋 Aku adalah personal assistantmu. Bagaimana aku bisa membantu?',
-      isBot: true,
-      timestamp: 'Wed 8:21 AM',
-    },
-    {
-      id: 2,
-      text: 'Bagaimana progress siswa sejauh ini?',
-      isBot: false,
-    },
-    {
-      id: 3,
-      text: 'Bagaimana kurikulum terkini?',
-      isBot: false,
-    },
-    {
-      id: 4,
-      text: 'Baiklah. Bagaimana dengan ini?',
-      isBot: true,
-    },
-  ]);
 
-  const days = [
-    { day: 'SUN', date: '23', full: 'Sunday' },
-    { day: 'MON', date: '24', full: 'Monday' },
-    { day: 'TUE', date: '25', full: 'Tuesday' },
-    { day: 'WED', date: '26', full: 'Wednesday' },
-    { day: 'THU', date: '27', full: 'Thursday' },
-    { day: 'FRI', date: '28', full: 'Friday' },
-    { day: 'SAT', date: '1', full: 'Saturday' },
-  ];
-
-  const timeSlots = [
-    { time: '07:00', events: [] },
-    { 
-      time: '08:00', 
-      events: [
-        { day: 1, title: 'Upacara Bendera', highlightColor: '#0EA5E9', color: '#DBEAF6', textColor: '#0369A1' }, 
-      ] 
-    },
-    { 
-      time: '09:00', 
-      events: [
-        { day: 3, title: 'Kelas Literasi', highlightColor: '#10B981', color: '#DCECEC', textColor: '#047857' }, 
-      ] 
-    },
-    { 
-      time: '10:00', 
-      events: [
-        { day: 5, title: 'Kelas Matematika', highlightColor: '#8B5CF6', color: '#DDD8EC', textColor: '#6D2869' },
-      ] 
-    },
-    { time: '11:00', events: [] },
-    { time: '12:00', events: [] },
-    { time: '13:00', events: [] },
-    { 
-      time: '14:00', 
-      events: [
-        { day: 2, title: 'Evaluasi Harian', highlightColor: '#F59E0B', color: '#F2EAE0', textColor: '#B45309' }, 
-      ] 
-    },
-  ];
-
-  const handleNavigation = (route: string) => {
-    if (route === 'profile') {
-      router.push('/(tabs)/profile');
-    } else if (route === 'jurnal') {
-      router.push('/(teacher)/jurnal');
-    } else if (route === 'data-siswa') {
-      router.push('/(teacher)/data-siswa');
-    }
+  const callGeminiAI = async (prompt: string, context: StudentProgress): Promise<string> => {
+    return simulateAIResponse(prompt, context);
   };
 
-  const handleSendMessage = () => {
-    if (message.trim()) {
-      setChatMessages([
-        ...chatMessages,
-        {
-          id: chatMessages.length + 1,
-          text: message,
-          isBot: false,
-        },
-      ]);
-      setMessage('');
+  const sendMessage = async () => {
+    if (!message.trim()) return;
+
+    const userMessage = {
+      id: chatMessages.length + 1,
+      text: message,
+      isBot: false,
+      timestamp: new Date().toLocaleTimeString(),
+    };
+
+    setChatMessages([...chatMessages, userMessage]);
+    setMessage('');
+    setIsLoading(true);
+
+    try {
+      const aiResponse = await callGeminiAI(message, studentProgress);
       
-      // Simulate bot response
-      setTimeout(() => {
-        setChatMessages((prev) => [
-          ...prev,
-          {
-            id: prev.length + 1,
-            text: 'Saya telah mencatat permintaan Anda. Ada yang bisa saya bantu lagi?',
-            isBot: true,
-          },
-        ]);
-      }, 1000);
+      setChatMessages(prev => [...prev, {
+        id: prev.length + 1,
+        text: aiResponse,
+        isBot: true,
+        timestamp: new Date().toLocaleTimeString(),
+      }]);
+    } catch (error) {
+      console.error('Error getting AI response:', error);
+      setChatMessages(prev => [...prev, {
+        id: prev.length + 1,
+        text: 'Maaf, terjadi kesalahan. Silakan coba lagi.',
+        isBot: true,
+        timestamp: new Date().toLocaleTimeString(),
+      }]);
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const renderCalendarHeader = () => {
-    return (
-      <View style={styles.calendarHeader}>
-        <View style={styles.calendarNavigation}>
-          <TouchableOpacity>
-            <Ionicons name="chevron-back" size={24} color="#333" />
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.todayButton}>
-            <Text style={styles.todayButtonText}>Today</Text>
-          </TouchableOpacity>
-          <TouchableOpacity>
-            <Ionicons name="chevron-forward" size={24} color="#333" />
-          </TouchableOpacity>
-        </View>
-
-        <View style={styles.calendarTabsContainer}>
-          <TouchableOpacity 
-            style={[styles.tabButton, selectedTab === 'Day' && styles.selectedTab]}
-            onPress={() => setSelectedTab('Day')}
-          >
-            <Text style={[styles.tabText, selectedTab === 'Day' && styles.selectedTabText]}>Day</Text>
-          </TouchableOpacity>
-          <TouchableOpacity 
-            style={[styles.tabButton, selectedTab === 'Week' && styles.selectedTab]}
-            onPress={() => setSelectedTab('Week')}
-          >
-            <Text style={[styles.tabText, selectedTab === 'Week' && styles.selectedTabText]}>Week</Text>
-          </TouchableOpacity>
-          <TouchableOpacity 
-            style={[styles.tabButton, selectedTab === 'Month' && styles.selectedTab]}
-            onPress={() => setSelectedTab('Month')}
-          >
-            <Text style={[styles.tabText, selectedTab === 'Month' && styles.selectedTabText]}>Month</Text>
-          </TouchableOpacity>
-          <TouchableOpacity 
-            style={[styles.tabButton, selectedTab === 'Year' && styles.selectedTab]}
-            onPress={() => setSelectedTab('Year')}
-          >
-            <Text style={[styles.tabText, selectedTab === 'Year' && styles.selectedTabText]}>Year</Text>
-          </TouchableOpacity>
-        </View>
-
-        <View style={styles.searchContainer}>
-          <Ionicons name="search" size={20} color="#777" style={styles.searchIcon} />
-          <TextInput 
-            style={styles.searchInput} 
-            placeholder="Search" 
-            placeholderTextColor="#999" 
-          />
-        </View>
-      </View>
-    );
+  const simulateAIResponse = (userMessage: string, progress: StudentProgress): Promise<string> => {
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        let response = '';
+        
+        if (userMessage.toLowerCase().includes('progress') || userMessage.toLowerCase().includes('evaluasi')) {
+          response = `Berdasarkan data terkini, berikut adalah evaluasi progress siswa:\n\n` +
+            `📚 Literasi: ${progress.literasi.average}%\n` +
+            `   Perlu ditingkatkan: ${progress.literasi.needImprovement.join(', ')}\n\n` +
+            `🔢 Matematika: ${progress.matematika.average}%\n` +
+            `   Perlu ditingkatkan: ${progress.matematika.needImprovement.join(', ')}\n\n` +
+            `🔬 Sains: ${progress.sains.average}%\n` +
+            `   Perlu ditingkatkan: ${progress.sains.needImprovement.join(', ')}\n\n` +
+            `Rekomendasi: Fokus pada materi ${progress.matematika.needImprovement[0]} untuk matematika, dan ${progress.literasi.needImprovement[0]} untuk literasi.`;
+        } else if (userMessage.toLowerCase().includes('kurikulum') || userMessage.toLowerCase().includes('materi')) {
+          response = `Berdasarkan analisis progress siswa dan kurikulum Kemdikbud, saya merekomendasikan:\n\n` +
+            `1. Literasi: Tambahkan latihan membaca pemahaman dengan teks naratif dan deskriptif\n` +
+            `2. Matematika: Gunakan metode visual untuk mengajarkan perkalian\n` +
+            `3. Sains: Integrasikan eksperimen sederhana dalam pembelajaran\n\n` +
+            `Pendekatan ini sesuai dengan Kurikulum Merdeka yang menekankan pembelajaran berbasis proyek dan pemahaman konsep.`;
+        } else if (userMessage.toLowerCase().includes('penyesuaian') || userMessage.toLowerCase().includes('adaptasi')) {
+          response = `Untuk penyesuaian pembelajaran hari ini, saya sarankan:\n\n` +
+            `🌅 Pagi (08:00-10:00): Literasi dengan fokus membaca pemahaman\n` +
+            `🌞 Siang (10:00-12:00): Matematika dengan permainan perkalian interaktif\n` +
+            `🌄 Sore (13:00-14:00): Review dan evaluasi harian\n\n` +
+            `Metode ini akan membantu siswa yang masih lemah di area tertentu sambil mempertahankan progress siswa yang sudah baik.`;
+        } else {
+          response = `Saya memahami pertanyaan Anda. Berdasarkan data progress siswa dan panduan Kemdikbud, ` +
+            `saya dapat memberikan rekomendasi yang lebih spesifik. Apa yang ingin Anda ketahui lebih lanjut? ` +
+            `Misalnya tentang evaluasi progress, penyesuaian kurikulum, atau rekomendasi materi pembelajaran?`;
+        }
+        
+        resolve(response);
+      }, 1500); 
+    });
   };
 
-  const renderWeekCalendar = () => {
-    return (
-      <View style={styles.weekCalendar}>
-        <View style={styles.dayHeadersRow}>
-          {days.map((item, index) => (
-            <TouchableOpacity 
-              key={index}
-              style={[
-                styles.dayHeader, 
-                selectedDay === index && styles.selectedDayHeader,
-                index === 6 && { backgroundColor: '#c1123d' }, // Saturday is red
-              ]}
-              onPress={() => setSelectedDay(index)}
-            >
-              <Text style={[styles.dayText, (selectedDay === index || index === 6) && styles.selectedDayText]}>
-                {item.day}
-              </Text>
-              <Text style={[styles.dateText, (selectedDay === index || index === 6) && styles.selectedDayText]}>
-                {item.date}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
+  const getDaysInWeek = (startDate: Date): WeekDay[] => {
+    const days: WeekDay[] = [];
+    const dayNames = ['MIN', 'SEN', 'SEL', 'RAB', 'KAM', 'JUM', 'SAB'];
+    
+    for (let i = 0; i < 7; i++) {
+      const date = new Date(startDate);
+      date.setDate(startDate.getDate() + i);
+      
+      days.push({
+        day: dayNames[date.getDay()],
+        date: date.getDate().toString(),
+        fullDate: date.toISOString().split('T')[0],
+        fullDateObj: date
+      });
+    }
+    
+    return days;
+  };
 
-        <ScrollView style={styles.timelineContainer}>
-          {timeSlots.map((slot, slotIndex) => (
-            <View key={slotIndex} style={styles.timeSlot}>
-              <Text style={styles.timeText}>{slot.time}</Text>
-              <View style={styles.timeSlotRow}>
-                {days.map((_, dayIndex) => {
-                  const event = slot.events.find(e => e.day === dayIndex);
-                  return (
-                    <View 
-                      key={dayIndex} 
-                      style={[
-                        styles.timeSlotCell,
-                        event && { backgroundColor: event.color },
-                        selectedDay === dayIndex && { backgroundColor: event ? event.color : '#F2F2F7' },
-                      ]}
-                    >
-                      {event && (
-                        <View style={[styles.eventContainer, event && { borderLeftColor: event.highlightColor }]}>
-                          <Text style={[styles.eventTime, { color: event.textColor }]}>{slot.time}</Text>
-                          <Text style={[styles.eventTitle, { color: event.textColor }]}>{event.title}</Text>
-                        </View>
-                      )}
-                    </View>
-                  );
-                })}
+  const getDaysInMonth = (): (MonthDay | null)[] => {
+    const year = currentMonth.getFullYear();
+    const month = currentMonth.getMonth();
+    const firstDay = new Date(year, month, 1);
+    const lastDay = new Date(year, month + 1, 0);
+    const days: (MonthDay | null)[] = [];
+
+    const firstDayOfWeek = firstDay.getDay();
+    for (let i = 0; i < firstDayOfWeek; i++) {
+      days.push(null);
+    }
+    
+    for (let date = 1; date <= lastDay.getDate(); date++) {
+      const currentDate = new Date(year, month, date);
+      days.push({
+        date: date.toString(),
+        fullDate: currentDate.toISOString().split('T')[0],
+        fullDateObj: currentDate,
+        isToday: currentDate.toDateString() === new Date().toDateString()
+      });
+    }
+    
+    return days;
+  };
+
+  const getMonthYearString = () => {
+    const months = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 
+                   'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+    const currentDisplay = selectedTab === 'Week' ? currentWeekStart : currentMonth;
+    return `${months[currentDisplay.getMonth()]} ${currentDisplay.getFullYear()}`;
+  };
+
+  const navigateMonth = (direction: 'prev' | 'next') => {
+    const newMonth = new Date(currentMonth);
+    if (direction === 'prev') {
+      newMonth.setMonth(currentMonth.getMonth() - 1);
+    } else {
+      newMonth.setMonth(currentMonth.getMonth() + 1);
+    }
+    setCurrentMonth(newMonth);
+    setSelectedMonth(newMonth.getMonth());
+    setSelectedYear(newMonth.getFullYear());
+  };
+
+  const navigateWeek = (direction: 'prev' | 'next') => {
+    const newWeekStart = new Date(currentWeekStart);
+    if (direction === 'prev') {
+      newWeekStart.setDate(currentWeekStart.getDate() - 7);
+    } else {
+      newWeekStart.setDate(currentWeekStart.getDate() + 7);
+    }
+    setCurrentWeekStart(newWeekStart);
+    
+    const weekMiddle = new Date(newWeekStart);
+    weekMiddle.setDate(newWeekStart.getDate() + 3);
+    setCurrentMonth(new Date(weekMiddle.getFullYear(), weekMiddle.getMonth(), 1));
+  };
+
+  const weekDays = selectedTab === 'Week' ? getDaysInWeek(currentWeekStart) : [];
+  const monthDays = selectedTab === 'Month' ? getDaysInMonth() : [];
+
+  const handleCellPress = (date: string, time: string) => {
+    if (!selectingEndTime) {
+      setSelectedCell({ date, startTime: time });
+      setSelectingEndTime(true);
+    } else {
+      const startHour = parseInt(selectedCell!.startTime.split(':')[0]);
+      const endHour = parseInt(time.split(':')[0]);
+      
+      if (selectedCell!.date === date && endHour > startHour) {
+        setSelectedCell({
+          ...selectedCell!,
+          endTime: time
+        });
+        setShowEventModal(true);
+        setSelectingEndTime(false);
+      } else {
+        // Reset if invalid selection
+        setSelectedCell(null);
+        setSelectingEndTime(false);
+      }
+    }
+  };
+
+  const addEvent = () => {
+    if (!newEventTitle.trim() || !selectedCell || !selectedCell.endTime) return;
+
+    const newEvent: Event = {
+      id: Date.now(),
+      title: newEventTitle,
+      startTime: selectedCell.startTime,
+      endTime: selectedCell.endTime,
+      category: newEventCategory,
+      description: newEventDescription,
+      date: selectedCell.date,
+    };
+
+    setEvents(prev => ({
+      ...prev,
+      [selectedCell.date]: [...(prev[selectedCell.date] || []), newEvent],
+    }));
+
+    setNewEventTitle('');
+    setNewEventDescription('');
+    setNewEventCategory('literasi');
+    setSelectedCell(null);
+    setShowEventModal(false);
+  };
+
+  const renderTimeSlots = () => {
+    const timeSlots = [];
+    
+    for (let hour = 7; hour <= 15; hour++) {
+      const time = `${hour.toString().padStart(2, '0')}:00`;
+      const slotsForTime: { dayIndex: number; date: string; event?: Event }[] = [];
+
+      weekDays.forEach((day, dayIndex) => {
+        const dayEvents = events[day.fullDate] || [];
+        const eventsAtTime = dayEvents.filter((e: Event) => {
+          const startHour = parseInt(e.startTime.split(':')[0]);
+          const endHour = parseInt(e.endTime.split(':')[0]);
+          const currentHour = parseInt(time.split(':')[0]);
+          return currentHour >= startHour && currentHour < endHour;
+        });
+        
+        slotsForTime.push({ 
+          dayIndex, 
+          date: day.fullDate,
+          event: eventsAtTime[0] 
+        });
+      });
+
+      timeSlots.push({ time, slots: slotsForTime });
+    }
+    return timeSlots;
+  };
+
+  const renderEventModal = () => (
+    <Modal
+      visible={showEventModal}
+      transparent={true}
+      animationType="slide"
+      onRequestClose={() => {
+        setShowEventModal(false);
+        setSelectedCell(null);
+      }}
+    >
+      <View style={styles.modalOverlay}>
+        <View style={styles.modalContent}>
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>Tambah Jadwal</Text>
+            <TouchableOpacity onPress={() => {
+              setShowEventModal(false);
+              setSelectedCell(null);
+            }}>
+              <Ionicons name="close" size={24} color={colors.darkGray} />
+            </TouchableOpacity>
+          </View>
+
+          <ScrollView style={styles.modalBody}>
+            <Text style={styles.inputLabel}>Judul Kegiatan</Text>
+            <TextInput
+              style={styles.modalInput}
+              value={newEventTitle}
+              onChangeText={setNewEventTitle}
+              placeholder="Contoh: Kelas Literasi"
+              placeholderTextColor={colors.gray}
+            />
+
+            <Text style={styles.inputLabel}>Waktu</Text>
+            <View style={styles.timeRangeContainer}>
+              <View style={styles.timeBox}>
+                <Text style={styles.timeRangeLabel}>Mulai</Text>
+                <Text style={styles.timeValue}>{selectedCell?.startTime}</Text>
+              </View>
+              <Ionicons name="arrow-forward" size={20} color={colors.gray} />
+              <View style={styles.timeBox}>
+                <Text style={styles.timeRangeLabel}>Selesai</Text>
+                <Text style={styles.timeValue}>{selectedCell?.endTime}</Text>
               </View>
             </View>
-          ))}
-        </ScrollView>
+
+            <Text style={styles.inputLabel}>Kategori</Text>
+            <View style={styles.categoryContainer}>
+              {Object.entries(eventCategories).map(([key, value]) => (
+                <TouchableOpacity
+                  key={key}
+                  style={[
+                    styles.categoryButton,
+                    { backgroundColor: value.color },
+                    newEventCategory === key && styles.categoryButtonSelected
+                  ]}
+                  onPress={() => setNewEventCategory(key)}
+                >
+                  <Ionicons name={value.icon as any} size={20} color={value.textColor} />
+                  <Text style={[styles.categoryButtonText, { color: value.textColor }]}>
+                    {key.charAt(0).toUpperCase() + key.slice(1)}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            <Text style={styles.inputLabel}>Deskripsi (Opsional)</Text>
+            <TextInput
+              style={[styles.modalInput, styles.textArea]}
+              value={newEventDescription}
+              onChangeText={setNewEventDescription}
+              placeholder="Tambahkan deskripsi kegiatan..."
+              placeholderTextColor={colors.gray}
+              multiline={true}
+              numberOfLines={3}
+            />
+          </ScrollView>
+
+          <View style={styles.modalFooter}>
+            <TouchableOpacity
+              style={[styles.modalButton, styles.cancelButton]}
+              onPress={() => {
+                setShowEventModal(false);
+                setSelectedCell(null);
+              }}
+            >
+              <Text style={styles.cancelButtonText}>Batal</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.modalButton, styles.submitButton]}
+              onPress={addEvent}
+            >
+              <Text style={styles.submitButtonText}>Simpan</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
       </View>
+    </Modal>
+  );
+
+  const renderMonthPickerModal = () => {
+    const months = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 
+                   'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+    const years = Array.from({ length: 10 }, (_, i) => 2020 + i);
+
+    return (
+      <Modal
+        visible={showMonthPicker}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowMonthPicker(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.monthPickerModal}>
+            <View style={styles.monthPickerHeader}>
+              <Text style={styles.monthPickerTitle}>Pilih Bulan & Tahun</Text>
+              <TouchableOpacity onPress={() => setShowMonthPicker(false)}>
+                <Ionicons name="close" size={24} color={colors.darkGray} />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.monthPickerContent}>
+              <View style={styles.monthGrid}>
+                {months.map((month, index) => (
+                  <TouchableOpacity
+                    key={index}
+                    style={[
+                      styles.monthOption,
+                      selectedMonth === index && styles.monthOptionSelected
+                    ]}
+                    onPress={() => setSelectedMonth(index)}
+                  >
+                    <Text style={[
+                      styles.monthOptionText,
+                      selectedMonth === index && styles.monthOptionTextSelected
+                    ]}>
+                      {month}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+
+              <View style={styles.yearPicker}>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                  {years.map((year) => (
+                    <TouchableOpacity
+                      key={year}
+                      style={[
+                        styles.yearOption,
+                        selectedYear === year && styles.yearOptionSelected
+                      ]}
+                      onPress={() => setSelectedYear(year)}
+                    >
+                      <Text style={[
+                        styles.yearOptionText,
+                        selectedYear === year && styles.yearOptionTextSelected
+                      ]}>
+                        {year}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </View>
+            </View>
+
+            <View style={styles.monthPickerFooter}>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.cancelButton]}
+                onPress={() => setShowMonthPicker(false)}
+              >
+                <Text style={styles.cancelButtonText}>Batal</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.submitButton]}
+                onPress={() => {
+                  const newDate = new Date(selectedYear, selectedMonth, 1);
+                  setCurrentMonth(newDate);
+                  if (selectedTab === 'Week') {
+                    const firstDayOfMonth = new Date(selectedYear, selectedMonth, 1);
+                    const dayOfWeek = firstDayOfMonth.getDay();
+                    const firstSunday = new Date(firstDayOfMonth);
+                    firstSunday.setDate(1 - dayOfWeek);
+                    setCurrentWeekStart(firstSunday);
+                  }
+                  setShowMonthPicker(false);
+                }}
+              >
+                <Text style={styles.submitButtonText}>Pilih</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     );
   };
 
-  const renderChatSection = () => {
-    return (
-      <View style={styles.chatContainer}>
-        {!isMobile && (
-          <View style={styles.chatHeader}>
-            <View style={styles.avatarContainer}>
+  const renderChatSection = () => (
+    <View style={[styles.chatContainer, isMobile && styles.chatContainerMobile]}>
+      <View style={styles.chatHeader}>
+        <View style={styles.avatarContainer}>
+          <Image
+            source={require('../../assets/images/lino.png')}
+            style={styles.avatar}
+          />
+        </View>
+        <View style={styles.chatTitleContainer}>
+          <Text style={styles.chatTitle}>Tanya Lino Yuk!</Text>
+          <Text style={styles.chatSubtitle}>Siap membantu Anda 24/7 ✨</Text>
+        </View>
+      </View>
+
+      <ScrollView
+        style={styles.chatMessages}
+        contentContainerStyle={styles.chatMessagesContent}
+        ref={ref => { if (ref) ref.scrollToEnd({ animated: true }); }}
+      >
+        {chatMessages.map((msg) => (
+          <View
+            key={msg.id}
+            style={[
+              styles.messageContainer,
+              msg.isBot ? styles.botMessageContainer : styles.userMessageContainer,
+            ]}
+          >
+            {msg.isBot && (
               <Image
                 source={require('../../assets/images/lino.png')}
-                style={styles.avatar}
+                style={styles.messageAvatar}
               />
+            )}
+            <View
+              style={[
+                styles.messageBubble,
+                msg.isBot ? styles.botMessageBubble : styles.userMessageBubble,
+              ]}
+            >
+              <Text style={[
+                styles.messageText,
+                !msg.isBot && styles.userMessageText
+              ]}>
+                {msg.text}
+              </Text>
+              <Text style={[
+                styles.messageTime,
+                !msg.isBot && styles.userMessageTime
+              ]}>
+                {msg.timestamp}
+              </Text>
             </View>
-            <Text style={styles.chatTitle}>Tanya Lino Yuk!</Text>
+          </View>
+        ))}
+        
+        {isLoading && (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="small" color={colors.primary} />
+            <Text style={styles.loadingText}>Lino sedang berpikir...</Text>
           </View>
         )}
+      </ScrollView>
 
-        <ScrollView style={styles.chatMessages}>
-          {isMobile && (
-            <Text style={styles.messageTimeHeader}>Wed 8:21 AM</Text>
-          )}
-          
-          {chatMessages.map((message, index) => (
-            <View
-              key={index}
-              style={[
-                styles.messageContainer,
-                message.isBot ? styles.botMessageContainer : styles.userMessageContainer,
-              ]}
-            >
-              {message.isBot && (
-                <Image
-                  source={require('../../assets/images/lino.png')}
-                  style={styles.messageAvatar}
-                />
-              )}
-              <View
-                style={[
-                  styles.messageBubble,
-                  message.isBot ? styles.botMessageBubble : styles.userMessageBubble,
-                ]}
-              >
-                <Text style={styles.messageText}>{message.text}</Text>
-                {message.timestamp && !isMobile && (
-                  <Text style={styles.messageTime}>{message.timestamp}</Text>
-                )}
-              </View>
-            </View>
-          ))}
-
-          {/* Quick action buttons */}
-          <View style={styles.quickActionsContainer}>
-            <TouchableOpacity style={styles.actionButton}>
-              <Text style={styles.actionButtonText}>Penyesuaian pembelajaran hari ini</Text>
-            </TouchableOpacity>
-            
-            <View style={styles.actionButtonsRow}>
-              <TouchableOpacity style={[styles.smallActionButton, { backgroundColor: '#ffffff' }]}>
-                <Text style={styles.smallActionText}>Literasi 1</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={[styles.smallActionButton, { backgroundColor: '#ffffff' }]}>
-                <Text style={styles.smallActionText}>Berhitung</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={[styles.smallActionButton, { backgroundColor: '#ffffff' }]}>
-                <Text style={styles.smallActionText}>Olahraga</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </ScrollView>
-
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          style={styles.inputContainer}
-        >
-          <View style={styles.inputWrapper}>
-            <TextInput
-              style={styles.input}
-              placeholder="Type a message..."
-              value={message}
-              onChangeText={setMessage}
-              placeholderTextColor="#999"
-            />
-            <TouchableOpacity style={styles.micButtonInside}>
-              <Ionicons name="mic-outline" size={20} color="#777" />
-            </TouchableOpacity>
-          </View>
-          <TouchableOpacity style={styles.sendButton} onPress={handleSendMessage}>
-            <Ionicons name="send" size={24} color="white" />
+      <View style={styles.quickActions}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+          <TouchableOpacity
+            style={styles.quickActionButton}
+            onPress={() => setMessage('Bagaimana progress siswa saat ini?')}
+          >
+            <Ionicons name="analytics" size={16} color={colors.primary} />
+            <Text style={styles.quickActionText}>Evaluasi Progress</Text>
           </TouchableOpacity>
-        </KeyboardAvoidingView>
+          <TouchableOpacity
+            style={styles.quickActionButton}
+            onPress={() => setMessage('Berikan rekomendasi materi pembelajaran')}
+          >
+            <Ionicons name="bulb" size={16} color={colors.primary} />
+            <Text style={styles.quickActionText}>Rekomendasi Materi</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.quickActionButton}
+            onPress={() => setMessage('Bagaimana penyesuaian pembelajaran hari ini?')}
+          >
+            <Ionicons name="calendar" size={16} color={colors.primary} />
+            <Text style={styles.quickActionText}>Penyesuaian Harian</Text>
+          </TouchableOpacity>
+        </ScrollView>
       </View>
-    );
-  };
 
-  // Render mobile-specific headers and tab navigation
-  const renderMobileHeader = () => {
-    if (activeTab === 0) { // Agenda tab
-      return (
-        <View style={styles.mobileHeader}>
-          <View style={styles.agendaHeader}>
-            <Text style={styles.agendaTitle}>Agenda Hari Ini</Text>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.inputContainer}
+      >
+        <View style={styles.inputWrapper}>
+          <TextInput
+            style={styles.input}
+            placeholder="Tanya tentang kurikulum, progress siswa..."
+            value={message}
+            onChangeText={setMessage}
+            placeholderTextColor={colors.gray}
+            multiline
+          />
+          <TouchableOpacity style={styles.micButton}>
+            <Ionicons name="mic-outline" size={20} color={colors.gray} />
+          </TouchableOpacity>
+        </View>
+        <TouchableOpacity
+          style={[styles.sendButton, !message.trim() && styles.sendButtonDisabled]}
+          onPress={sendMessage}
+          disabled={!message.trim()}
+        >
+          <Ionicons name="send" size={20} color={colors.white} />
+        </TouchableOpacity>
+      </KeyboardAvoidingView>
+    </View>
+  );
+
+  const renderCalendarSection = () => (
+    <View style={[styles.calendarSection, isMobile && styles.calendarSectionMobile]}>
+      <View style={styles.calendarHeader}>
+        <View style={styles.monthNavigation}>
+          <TouchableOpacity 
+            style={styles.navButton}
+            onPress={() => selectedTab === 'Week' ? navigateWeek('prev') : navigateMonth('prev')}
+          >
+            <Ionicons name="chevron-back" size={24} color={colors.primary} />
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => setShowMonthPicker(true)} style={styles.monthButton}>
+            <Text style={styles.monthText}>{getMonthYearString()}</Text>
+            <Ionicons name="chevron-down" size={16} color={colors.primary} style={{ marginLeft: 8 }} />
+          </TouchableOpacity>
+          <TouchableOpacity 
+            style={styles.navButton}
+            onPress={() => selectedTab === 'Week' ? navigateWeek('next') : navigateMonth('next')}
+          >
+            <Ionicons name="chevron-forward" size={24} color={colors.primary} />
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.viewToggle}>
+          {['Week', 'Month'].map((view) => (
+            <TouchableOpacity
+              key={view}
+              style={[styles.viewButton, selectedTab === view && styles.viewButtonActive]}
+              onPress={() => setSelectedTab(view)}
+            >
+              <Text style={[styles.viewButtonText, selectedTab === view && styles.viewButtonTextActive]}>
+                {view === 'Week' ? 'Minggu' : 'Bulan'}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      </View>
+
+      {selectedTab === 'Week' ? (
+        <>
+          <View style={styles.daysHeader}>
+            {weekDays.map((day, index) => (
+              <TouchableOpacity
+                key={index}
+                style={[
+                  styles.dayColumn,
+                  selectedDay === index && styles.dayColumnSelected,
+                  day.fullDateObj.getDay() === 0 && styles.sundayColumn,
+                ]}
+                onPress={() => setSelectedDay(index)}
+              >
+                <Text style={[
+                  styles.dayName,
+                  selectedDay === index && styles.dayNameSelected,
+                  day.fullDateObj.getDay() === 0 && styles.sundayText,
+                ]}>
+                  {day.day}
+                </Text>
+                <Text style={[
+                  styles.dayDate,
+                  selectedDay === index && styles.dayDateSelected,
+                  day.fullDateObj.getDay() === 0 && styles.sundayText,
+                ]}>
+                  {day.date}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+
+          <ScrollView style={styles.timeSlotContainer}>
+            {renderTimeSlots().map((slot, index) => (
+              <View key={index} style={styles.timeSlotRow}>
+                <Text style={styles.timeLabel}>{slot.time}</Text>
+                <View style={styles.eventSlotsRow}>
+                  {slot.slots.map((slotData, slotIndex) => (
+                    <TouchableOpacity
+                      key={slotIndex}
+                      style={[
+                        styles.eventSlot,
+                        selectedDay === slotData.dayIndex && styles.eventSlotSelected,
+                        selectingEndTime && selectedCell?.date === slotData.date && 
+                        parseInt(slot.time.split(':')[0]) >= parseInt(selectedCell.startTime.split(':')[0]) &&
+                        styles.eventSlotHighlight
+                      ]}
+                      onPress={() => handleCellPress(slotData.date, slot.time)}
+                    >
+                      {slotData.event && (
+                        <View
+                          style={[
+                            styles.eventCard,
+                            {
+                              backgroundColor: eventCategories[slotData.event.category]?.color || '#FFFFFF',
+                              borderLeftColor: eventCategories[slotData.event.category]?.highlightColor || '#000000',
+                            }
+                          ]}
+                        >
+                          <Text
+                            style={[
+                              styles.eventTitle,
+                              { color: eventCategories[slotData.event.category]?.textColor || '#000000' }
+                            ]}
+                            numberOfLines={1}
+                          >
+                            {slotData.event.title}
+                          </Text>
+                          <Text
+                            style={[
+                              styles.eventTime,
+                              { color: eventCategories[slotData.event.category]?.textColor || '#000000' }
+                            ]}
+                          >
+                            {slotData.event.startTime} - {slotData.event.endTime}
+                          </Text>
+                        </View>
+                      )}
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+            ))}
+          </ScrollView>
+        </>
+      ) : (
+        <View style={styles.monthViewContainer}>
+          <View style={styles.monthDaysHeader}>
+            {['MIN', 'SEN', 'SEL', 'RAB', 'KAM', 'JUM', 'SAB'].map((day, index) => (
+              <View key={index} style={styles.monthDayHeader}>
+                <Text style={[
+                  styles.monthDayHeaderText,
+                  index === 0 && styles.sundayText
+                ]}>
+                  {day}
+                </Text>
+              </View>
+            ))}
+          </View>
+          <View style={styles.monthGrid}>
+            {monthDays.map((day, index) => (
+              <TouchableOpacity
+                key={index}
+                style={[
+                  styles.monthDay,
+                  day?.isToday && styles.monthDayToday,
+                  day?.fullDateObj?.getDay() === 0 && styles.monthDaySunday,
+                ]}
+                onPress={() => day && console.log('Selected date:', day.fullDate)}
+              >
+                {day && (
+                  <>
+                    <Text style={[
+                      styles.monthDayText,
+                      day.isToday && styles.monthDayTodayText,
+                      day.fullDateObj.getDay() === 0 && styles.sundayText,
+                    ]}>
+                      {day.date}
+                    </Text>
+                    {events[day.fullDate] && events[day.fullDate].length > 0 && (
+                      <View style={styles.monthDayEventIndicator}>
+                        <View style={styles.monthDayEventDot} />
+                      </View>
+                    )}
+                  </>
+                )}
+              </TouchableOpacity>
+            ))}
           </View>
         </View>
-      );
-    } else { // Chat tab
-      return (
-        <View style={styles.mobileHeader}>
-          <View style={styles.chatHeader}>
-            <View style={styles.avatarContainer}>
-              <Image
-                source={require('../../assets/images/lino.png')}
-                style={styles.avatar}
-              />
-            </View>
-            <Text style={styles.chatTitle}>Tanya Lino Yuk!</Text>
-          </View>
-        </View>
-      );
-    }
-  };
+      )}
 
-  const renderMobileTabBar = () => {
-    return (
-      <View style={styles.mobileTabBar}>
-        <TouchableOpacity 
-          style={[styles.mobileTab, activeTab === 0 && styles.mobileTabActive]} 
-          onPress={() => setActiveTab(0)}
-        >
-          <Ionicons 
-            name="calendar" 
-            size={24} 
-            color={activeTab === 0 ? '#1a2d5e' : '#777'} 
-          />
-        </TouchableOpacity>
-        <TouchableOpacity 
-          style={[styles.mobileTab, activeTab === 1 && styles.mobileTabActive]} 
-          onPress={() => setActiveTab(1)}
-        >
-          <Ionicons 
-            name="chatbubble-ellipses" 
-            size={24} 
-            color={activeTab === 1 ? '#1a2d5e' : '#777'} 
-          />
-        </TouchableOpacity>
-      </View>
-    );
-  };
+      {selectingEndTime && (
+        <View style={styles.selectionHint}>
+          <Text style={styles.selectionHintText}>
+            Klik jam selesai untuk agenda yang dimulai jam {selectedCell?.startTime}
+          </Text>
+        </View>
+      )}
+
+    </View>
+  );
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, isMobile && styles.mobileContainer]}>
       <StatusBar style="auto" />
       
       {isMobile ? (
-        // Mobile layout
         <>
-          <View style={styles.header}>
-            <TouchableOpacity style={styles.menuButton}>
-              <Ionicons name="menu" size={24} color="#c1123d" />
-            </TouchableOpacity>
-            
-            <View style={styles.logoContainer}>
-              <Image
-                source={require('../../assets/images/lino.png')}
-                style={styles.logoIcon}
-                resizeMode="contain"
-              />
-            </View>
-            
-            <TouchableOpacity style={styles.profileContainer}>
-              <View style={styles.profileImage}>
-                <Ionicons name="person" size={24} color="#ccc" />
-              </View>
-            </TouchableOpacity>
-          </View>
-
-          {renderMobileHeader()}
+          <Navbar />
 
           <View style={styles.mobileContent}>
-            {activeTab === 0 ? (
-              // Agenda/Calendar tab content
-              <View style={styles.mobileSection}>
-                <View style={styles.classScheduleContainer}>
-                  <View style={styles.scheduleItem}>
-                    <Text style={styles.scheduleTime}>10:00 - 11:00</Text>
-                    <Text style={styles.scheduleText}>Belajar Perkalian Bab 3</Text>
-                  </View>
-                  <View style={styles.scheduleItem}>
-                    <Text style={styles.scheduleTime}>10:00 - 11:00</Text>
-                    <Text style={styles.scheduleText}>Belajar Perkalian Bab 3</Text>
-                  </View>
-                </View>
-
-                {renderCalendarHeader()}
-                {renderWeekCalendar()}
-              </View>
-            ) : (
-              // Chat tab content
-              <View style={styles.mobileSection}>
-                {renderChatSection()}
-              </View>
-            )}
+            {activeTab === 0 ? renderCalendarSection() : renderChatSection()}
           </View>
 
-          {renderMobileTabBar()}
+          <View style={styles.mobileTabBar}>
+            <TouchableOpacity
+              style={[styles.mobileTab, activeTab === 0 && styles.mobileTabActive]}
+              onPress={() => setActiveTab(0)}
+            >
+              <Ionicons
+                name="calendar"
+                size={24}
+                color={activeTab === 0 ? colors.primary : colors.gray}
+              />
+              <Text style={[styles.mobileTabText, activeTab === 0 && styles.mobileTabTextActive]}>
+                Kalender
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.mobileTab, activeTab === 1 && styles.mobileTabActive]}
+              onPress={() => setActiveTab(1)}
+            >
+              <Ionicons
+                name="chatbubbles"
+                size={24}
+                color={activeTab === 1 ? colors.primary : colors.gray}
+              />
+              <Text style={[styles.mobileTabText, activeTab === 1 && styles.mobileTabTextActive]}>
+                AI Chat
+              </Text>
+            </TouchableOpacity>
+          </View>
         </>
       ) : (
-        // Desktop layout
         <>
-          <Navbar onNavigate={handleNavigation} />
-
-          <View style={styles.content}>
-            <View style={styles.leftSection}>
+          <Navbar onNavigate={(route) => {
+            if (route === 'jurnal') {
+              router.push('/(teacher)/jurnal');
+            } else if (route === 'data-siswa') {
+              router.push('/(teacher)/data-siswa');
+            } else if (route === 'profile') {
+              router.push('/(tabs)/profile');
+            }
+          }} />
+          
+          <View style={styles.desktopContent}>
+            <View style={styles.leftPanel}>
               {renderChatSection()}
             </View>
-
-            <View style={styles.rightSection}>
-              <View style={styles.agendaHeader}>
-                <Text style={styles.agendaTitle}>Agenda Hari Ini</Text>
-                <View style={styles.classScheduleContainer}>
-                  <View style={styles.scheduleItem}>
-                    <Text style={styles.scheduleTime}>10:00 - 11:00</Text>
-                    <Text style={styles.scheduleText}>Belajar Perkalian Bab 3</Text>
-                  </View>
-                  <View style={styles.scheduleItem}>
-                    <Text style={styles.scheduleTime}>10:00 - 11:00</Text>
-                    <Text style={styles.scheduleText}>Belajar Perkalian Bab 3</Text>
-                  </View>
-                </View>
+            
+            <View style={styles.rightPanel}>
+              <View style={styles.rightPanelHeader}>
+                <Text style={styles.rightPanelTitle}>Agenda & Jadwal</Text>
+                <TouchableOpacity style={styles.todayButton}>
+                  <Text style={styles.todayButtonText}>Hari Ini</Text>
+                </TouchableOpacity>
               </View>
-
-              {renderCalendarHeader()}
-              {renderWeekCalendar()}
+              
+              {renderCalendarSection()}
             </View>
           </View>
         </>
       )}
+
+      {renderEventModal()}
+      {renderMonthPickerModal()}
     </SafeAreaView>
   );
 };
@@ -483,173 +1000,156 @@ const Jurnal = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F5F5F5',
+    backgroundColor: colors.lightBg,
   },
-  header: {
+  mobileContainer: {
+    backgroundColor: '#FFF5E0',
+  },
+  
+  desktopContent: {
+    flex: 1,
     flexDirection: 'row',
-    alignItems: 'center',
+    padding: 20,
+    gap: 20,
+  },
+  leftPanel: {
+    width: 380,
+    backgroundColor: colors.white,
+    borderRadius: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 5,
+    overflow: 'hidden',
+  },
+  rightPanel: {
+    flex: 1,
+    backgroundColor: colors.white,
+    borderRadius: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 5,
+    overflow: 'hidden',
+  },
+  rightPanelHeader: {
+    flexDirection: 'row',
     justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.lightGray,
+  },
+  rightPanelTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: colors.darkGray,
+  },
+  todayButton: {
+    backgroundColor: colors.primary,
     paddingHorizontal: 16,
     paddingVertical: 8,
-    backgroundColor: 'white',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E5E5',
+    borderRadius: 8,
   },
-  menuButton: {
-    width: 40,
-    height: 40,
-    alignItems: 'center',
-    justifyContent: 'center',
+  todayButtonText: {
+    color: colors.white,
+    fontWeight: '600',
   },
-  logoContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  logoIcon: {
-    width: 40,
-    height: 40,
-    marginRight: 8,
-  },
-  logoTextContainer: {
-    flexDirection: 'column',
-  },
-  logoText: {
-    color: '#C70039',
-    fontSize: 24,
-    fontWeight: 'bold',
-  },
-  logoSubtext: {
-    color: '#555555',
-    fontSize: 12,
-    marginTop: -5,
-  },
-  navContainer: {
-    flexDirection: 'row',
-    flex: 1,
-    justifyContent: 'center',
-  },
-  navItem: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-  },
-  navText: {
-    fontSize: 18,
-    color: '#333',
-  },
-  activeNav: {
-    color: '#c1123d',
-    fontWeight: 'bold',
-  },
-  profileContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    overflow: 'hidden',
-  },
-  profileImage: {
-    width: '100%',
-    height: '100%',
-    backgroundColor: '#EFEFEF',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 20,
-  },
-  // Desktop layout
-  content: {
-    flex: 1,
-    flexDirection: 'row',
-    marginHorizontal: 32,
-  },
-  leftSection: {
-    width: '30%',
-    backgroundColor: 'white',
-    margin: 16,
-    borderRadius: 20,
-    overflow: 'hidden',
-    shadowColor: '#000',
-    boxShadow: '0 4px 8px rgba(0, 0, 0, 0.15)',
-  },
-  rightSection: {
-    flex: 1,
-    margin: 16,
-    backgroundColor: 'white',
-    borderRadius: 20,
-    overflow: 'hidden',
-    shadowColor: '#000',
-    boxShadow: '0 4px 8px rgba(0, 0, 0, 0.15)',
-  },
-  // Mobile layout
-  mobileHeader: {
-    backgroundColor: 'white',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E5E5',
-  },
+  
   mobileContent: {
     flex: 1,
-    backgroundColor: '#F5F5F5',
-  },
-  mobileSection: {
-    flex: 1,
-    backgroundColor: 'white',
-    margin: 8,
-    borderRadius: 8,
-    overflow: 'hidden',
+    backgroundColor: '#FFF5E0',
   },
   mobileTabBar: {
     flexDirection: 'row',
-    backgroundColor: 'white',
+    backgroundColor: colors.white,
     borderTopWidth: 1,
-    borderTopColor: '#E5E5E5',
-    height: 56,
+    borderTopColor: colors.lightGray,
+    paddingBottom: Platform.OS === 'ios' ? 20 : 10,
   },
   mobileTab: {
     flex: 1,
-    justifyContent: 'center',
     alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 10,
   },
   mobileTabActive: {
     borderTopWidth: 2,
-    borderTopColor: '#1a2d5e',
+    borderTopColor: colors.primary,
   },
+  mobileTabText: {
+    fontSize: 12,
+    color: colors.gray,
+    marginTop: 4,
+  },
+  mobileTabTextActive: {
+    color: colors.primary,
+    fontWeight: '600',
+  },
+  
   chatContainer: {
     flex: 1,
     display: 'flex',
     flexDirection: 'column',
+    backgroundColor: colors.white,
+  },
+  chatContainerMobile: {
+    backgroundColor: colors.white,
+    margin: 16,
+    borderRadius: 16,
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    overflow: 'hidden',
   },
   chatHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     padding: 16,
+    backgroundColor: colors.primary,
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E5E5',
-    backgroundColor: '#1a2d5e',
+    borderBottomColor: colors.lightGray,
   },
   avatarContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: colors.white,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  avatar: {
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: 'white',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 8,
   },
-  avatar: {
-    width: 26,
-    height: 26,
-    borderRadius: 13,
+  chatTitleContainer: {
+    flex: 1,
   },
   chatTitle: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: 'white',
+    color: colors.white,
+  },
+  chatSubtitle: {
+    fontSize: 12,
+    color: '#E0E0E0',
   },
   chatMessages: {
     flex: 1,
-    padding: 8,
+  },
+  chatMessagesContent: {
+    padding: 16,
+    paddingBottom: 80,
   },
   messageContainer: {
     flexDirection: 'row',
-    marginBottom: 8,
+    marginBottom: 16,
     alignItems: 'flex-end',
   },
   botMessageContainer: {
@@ -659,278 +1159,549 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   messageAvatar: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     marginRight: 8,
   },
   messageBubble: {
+    maxWidth: '80%',
     padding: 12,
     borderRadius: 16,
-    maxWidth: '80%',
   },
   botMessageBubble: {
-    backgroundColor: '#FFF3E0',
+    backgroundColor: '#F0F7FF',
     borderBottomLeftRadius: 4,
   },
   userMessageBubble: {
-    backgroundColor: '#F2F8FF',
+    backgroundColor: colors.primary,
     borderBottomRightRadius: 4,
+    marginLeft: 40,
   },
   messageText: {
     fontSize: 14,
-    color: '#333',
+    color: colors.darkGray,
+    lineHeight: 20,
+  },
+  userMessageText: {
+    color: colors.white,
   },
   messageTime: {
     fontSize: 10,
-    color: '#777',
-    alignSelf: 'flex-start',
+    color: colors.gray,
     marginTop: 4,
   },
-  quickActionsContainer: {
-    padding: 8,
-    marginHorizontal: 32,
-    backgroundColor: '#F2F8FF',
-    borderRadius: 24,
+  userMessageTime: {
+    color: '#E0E0E0',
   },
-  actionButton: {
-    borderRadius: 8,
-    padding: 12,
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  actionButtonText: {
-    color: '#0070F0',
-    fontWeight: '500',
-  },
-  actionButtonsRow: {
+  loadingContainer: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginHorizontal: 8,
-    marginBottom: 8,
-  },
-  smallActionButton: {
-    flex: 1,
-    backgroundColor: '#ffffff',
-    borderRadius: 32,
-    padding: 8,
     alignItems: 'center',
-    marginHorizontal: 4,
+    padding: 16,
   },
-  smallActionText: {
-    color: '#72777A',
+  loadingText: {
+    marginLeft: 8,
+    color: colors.gray,
+    fontSize: 14,
+  },
+  quickActions: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderTopWidth: 1,
+    borderTopColor: colors.lightGray,
+  },
+  quickActionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F0F7FF',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
+    marginRight: 8,
+  },
+  quickActionText: {
     fontSize: 12,
+    color: colors.primary,
+    marginLeft: 6,
   },
   inputContainer: {
     flexDirection: 'row',
     padding: 16,
-    alignItems: 'center',
+    backgroundColor: colors.white,
     borderTopWidth: 1,
-    borderTopColor: '#E5E5E5',
-    backgroundColor: 'white',
+    borderTopColor: colors.lightGray,
   },
   inputWrapper: {
     flex: 1,
-    position: 'relative',
     flexDirection: 'row',
     alignItems: 'center',
+    backgroundColor: colors.lightBg,
+    borderRadius: 24,
+    paddingHorizontal: 16,
     marginRight: 8,
   },
   input: {
     flex: 1,
-    backgroundColor: '#F5F5F5',
-    borderRadius: 20,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    paddingRight: 40,
+    paddingVertical: 12,
     fontSize: 14,
+    maxHeight: 100,
+    color: colors.darkGray,
   },
-  micButtonInside: {
-    position: 'absolute',
-    right: 8,
-    height: '100%',
-    justifyContent: 'center',
+  micButton: {
     padding: 8,
   },
   sendButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: '#1a2d5e',
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  agendaHeader: {
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E5E5',
+  sendButtonDisabled: {
+    backgroundColor: colors.lightGray,
   },
-  agendaTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#333',
-  },
-  classScheduleContainer: {
-    flexDirection: 'row',
-    padding: 8,
-    flexWrap: 'wrap',
-  },
-  scheduleItem: {
+
+  calendarSection: {
     flex: 1,
-    backgroundColor: '#1a2d5e',
-    borderRadius: 8,
-    padding: 12,
-    margin: 4,
-    minWidth: 150,
   },
-  scheduleTime: {
-    color: 'white',
-    fontSize: 12,
-    marginBottom: 4,
-  },
-  scheduleText: {
-    color: 'white',
-    fontWeight: '500',
-  },
-  messageTimeHeader: {
-    fontSize: 12,
-    color: '#666',
-    textAlign: 'center',
-    marginVertical: 8,
+  calendarSectionMobile: {
+    backgroundColor: colors.white,
+    margin: 16,
+    borderRadius: 16,
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
   },
   calendarHeader: {
+    backgroundColor: colors.white,
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.lightGray,
+  },
+  monthNavigation: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
+  },
+  navButton: {
+    padding: 8,
+  },
+  monthButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+  },
+  monthText: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: colors.primary,
+    textAlign: 'center',
+  },
+  viewToggle: {
+    flexDirection: 'row',
+    backgroundColor: colors.lightBg,
+    borderRadius: 20,
+    padding: 4,
+    marginTop: 12,
+  },
+  viewButton: {
+    flex: 1,
+    paddingVertical: 8,
+    alignItems: 'center',
+    borderRadius: 16,
+  },
+  viewButtonActive: {
+    backgroundColor: colors.primary,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  viewButtonText: {
+    fontSize: 14,
+    color: colors.gray,
+    fontWeight: '500',
+  },
+  viewButtonTextActive: {
+    color: colors.white,
+    fontWeight: '600',
+  },
+  daysHeader: {
+    flexDirection: 'row',
+    backgroundColor: colors.white,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.lightGray,
+    paddingLeft: 60, 
+  },
+  dayColumn: {
+    flex: 1,
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderRightWidth: 1,
+    borderRightColor: colors.lightGray,
+    minHeight: 60,
+  },
+  dayColumnSelected: {
+    backgroundColor: colors.primary,
+    borderTopWidth: 3,
+    borderTopColor: colors.secondary,
+  },
+  sundayColumn: {
+    backgroundColor: '#FFF5F5',
+  },
+  dayName: {
+    fontSize: 12,
+    color: colors.gray,
+    marginBottom: 4,
+  },
+  dayNameSelected: {
+    color: colors.white,
+  },
+  sundayText: {
+    color: colors.secondary,
+  },
+  dayDate: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.darkGray,
+  },
+  dayDateSelected: {
+    color: colors.white,
+  },
+  timeSlotContainer: {
+    flex: 1,
+    backgroundColor: colors.white,
+  },
+  timeSlotRow: {
+    flexDirection: 'row',
+    borderBottomWidth: 1,
+    borderBottomColor: colors.lightGray,
+    minHeight: 60,
+  },
+  timeLabel: {
+    width: 60,
+    padding: 8,
+    fontSize: 12,
+    color: colors.gray,
+    textAlign: 'center',
+    borderRightWidth: 1,
+    borderRightColor: colors.lightGray,
+    backgroundColor: colors.white,
+  },
+  eventSlotsRow: {
+    flex: 1,
+    flexDirection: 'row',
+  },
+  eventSlot: {
+    flex: 1,
+    minHeight: 60,
+    borderRightWidth: 1,
+    borderRightColor: colors.lightGray,
+    padding: 4,
+  },
+  eventSlotSelected: {
+    backgroundColor: '#F0F7FF',
+  },
+  eventSlotHighlight: {
+    backgroundColor: '#E6F3FF',
+  },
+  eventCard: {
+    backgroundColor: '#E6F3FF',
+    borderLeftWidth: 4,
+    borderLeftColor: colors.info,
+    padding: 8,
+    borderRadius: 8,
+    marginBottom: 4,
+    height: '100%',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  eventTitle: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: colors.darkGray,
+    marginBottom: 2,
+  },
+  eventTime: {
+    fontSize: 11,
+    color: colors.gray,
+    marginTop: 2,
+  },
+  selectionHint: {
+    position: 'absolute',
+    bottom: 20,
+    left: 20,
+    right: 20,
+    backgroundColor: colors.primary,
+    padding: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  selectionHintText: {
+    color: colors.white,
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  monthViewContainer: {
+    flex: 1,
+    backgroundColor: colors.white,
+    padding: 16,
+  },
+  monthDaysHeader: {
+    flexDirection: 'row',
+    paddingBottom: 8,
+  },
+  monthDayHeader: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  monthDayHeaderText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: colors.gray,
+  },
+  monthDay: {
+    width: '14.28%',
+    aspectRatio: 1,
+    padding: 4,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: colors.lightGray,
+  },
+  monthDayToday: {
+    backgroundColor: colors.primary,
+  },
+  monthDaySunday: {
+    backgroundColor: '#FFF0F0',
+  },
+  monthDayText: {
+    fontSize: 14,
+    color: colors.darkGray,
+  },
+  monthDayTodayText: {
+    color: colors.white,
+    fontWeight: 'bold',
+  },
+  monthDayEventIndicator: {
+    position: 'absolute',
+    bottom: 4,
+    flexDirection: 'row',
+  },
+  monthDayEventDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: colors.secondary,
+    marginHorizontal: 1,
+  },
+  monthPickerModal: {
+    backgroundColor: colors.white,
+    borderRadius: 16,
+    width: '90%',
+    maxWidth: 400,
+    maxHeight: '80%',
+  },
+  monthPickerHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.lightGray,
+  },
+  monthPickerTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: colors.darkGray,
+  },
+  monthPickerContent: {
+    padding: 20,
+  },
+  monthGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginBottom: 20,
+  },
+  monthOption: {
+    width: '33.33%',
+    padding: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 8,
+    marginVertical: 4,
+  },
+  monthOptionSelected: {
+    backgroundColor: colors.primary,
+  },
+  monthOptionText: {
+    fontSize: 14,
+    color: colors.darkGray,
+  },
+  monthOptionTextSelected: {
+    color: colors.white,
+    fontWeight: 'bold',
+  },
+  yearPicker: {
+    marginTop: 10,
+  },
+  yearOption: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    marginHorizontal: 4,
+    borderRadius: 8,
+    backgroundColor: colors.lightBg,
+  },
+  yearOptionSelected: {
+    backgroundColor: colors.primary,
+  },
+  yearOptionText: {
+    fontSize: 16,
+    color: colors.darkGray,
+  },
+  yearOptionTextSelected: {
+    color: colors.white,
+    fontWeight: 'bold',
+  },
+  monthPickerFooter: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    padding: 20,
+    borderTopWidth: 1,
+    borderTopColor: colors.lightGray,
+    gap: 12,
+  },
+  
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    backgroundColor: colors.white,
+    borderRadius: 16,
+    width: '90%',
+    maxWidth: 480,
+    maxHeight: '80%',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.lightGray,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: colors.darkGray,
+  },
+  modalBody: {
+    padding: 20,
+  },
+  inputLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.darkGray,
+    marginBottom: 8,
+    marginTop: 16,
+  },
+  modalInput: {
+    borderWidth: 1,
+    borderColor: colors.lightGray,
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 14,
+    color: colors.darkGray,
+  },
+  textArea: {
+    minHeight: 80,
+    textAlignVertical: 'top',
+  },
+  timeRangeContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginHorizontal: 16,
-    padding: 8,
-  },
-  calendarNavigation: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 8,
-  },
-  todayText: {
-    fontSize: 16,
-    fontWeight: '500',
-    marginHorizontal: 16,
-  },
-  calendarTabsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginVertical: 8,
-  },
-  tabButton: {
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 4,
-  },
-  selectedTab: {
-    backgroundColor: '#1a2d5e',
-  },
-  tabText: {
-    fontSize: 14,
-    color: '#333',
-  },
-  selectedTabText: {
-    color: 'white',
-  },
-  todayButton: {
-    backgroundColor: 'transparent',
-    borderRadius: 4,
-    paddingVertical: 4,
-    paddingHorizontal: 12,
-  },
-  todayButtonText: {
-    fontSize: 14,
-    color: '#333',
-  },
-  searchContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'transparent',
+    backgroundColor: colors.lightBg,
+    padding: 12,
     borderRadius: 8,
-    paddingHorizontal: 8,
-    marginVertical: 8,
   },
-  searchIcon: {
-    marginRight: 8,
-  },
-  searchInput: {
-    flex: 1,
-    paddingVertical: 8,
-    fontSize: 14,
-  },
-  weekCalendar: {
-    flex: 1,
-  },
-  dayHeadersRow: {
-    flexDirection: 'row',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E5E5',
-    marginLeft: 50,
-  },
-  dayHeader: {
+  timeBox: {
     flex: 1,
     alignItems: 'center',
-    padding: 8,
   },
-  selectedDayHeader: {
-    backgroundColor: '#1a2d5e',
-  },
-  dayText: {
+  timeRangeLabel: {
     fontSize: 12,
-    color: '#333',
+    color: colors.gray,
+    marginBottom: 4,
   },
-  dateText: {
+  timeValue: {
     fontSize: 16,
-    fontWeight: 'bold',
-    color: '#333',
+    fontWeight: '600',
+    color: colors.darkGray,
   },
-  selectedDayText: {
-    color: 'white',
-  },
-  timelineContainer: {
-    flex: 1,
-  },
-  timeSlot: {
+  categoryContainer: {
     flexDirection: 'row',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E5E5',
+    flexWrap: 'wrap',
+    gap: 8,
   },
-  timeText: {
-    width: 50,
-    padding: 8,
-    textAlign: 'center',
-    color: '#777',
-    fontSize: 12,
-  },
-  timeSlotRow: {
-    flex: 1,
+  categoryButton: {
     flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'transparent',
   },
-  timeSlotCell: {
-    flex: 1,
-    borderLeftWidth: 1,
-    borderLeftColor: '#E5E5E5',
-    minHeight: 60,
+  categoryButtonSelected: {
+    borderColor: colors.primary,
   },
-  eventContainer: {
-    borderLeftWidth: 4,
-    paddingHorizontal: 4,
-    flex: 1,
-  },
-  eventTime: {
-    fontSize: 10,
-    color: '#999',
-    marginBottom: 2,
-  },
-  eventTitle: {
+  categoryButtonText: {
     fontSize: 12,
-    color: '#333',
+    marginLeft: 6,
     fontWeight: '500',
+  },
+  modalFooter: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    padding: 20,
+    borderTopWidth: 1,
+    borderTopColor: colors.lightGray,
+    gap: 12,
+  },
+  modalButton: {
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+    minWidth: 100,
+    alignItems: 'center',
+  },
+  cancelButton: {
+    backgroundColor: colors.lightBg,
+  },
+  cancelButtonText: {
+    color: colors.darkGray,
+    fontWeight: '600',
+  },
+  submitButton: {
+    backgroundColor: colors.primary,
+  },
+  submitButtonText: {
+    color: colors.white,
+    fontWeight: '600',
   },
 });
 

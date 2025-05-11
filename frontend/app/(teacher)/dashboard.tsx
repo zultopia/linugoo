@@ -28,20 +28,19 @@ interface Student {
   role: string;
 }
 
-// Dummy data untuk grafik
 const dummyData = {
   monthlyProgress: {
     labels: ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun"],
     datasets: [{
-      data: [65, 70, 75, 80, 85, 88],
+      data: [72, 75, 78, 82, 85, 88],
       color: (opacity = 1) => `rgba(199, 0, 57, ${opacity})`,
       strokeWidth: 2
     }]
   },
   literacyData: [
     {
-      name: "Membaca",
-      value: 35,
+      name: "Baca Tulis",
+      value: 30,
       color: "#FF6384",
       legendFontColor: "#333",
       legendFontSize: 12
@@ -55,7 +54,7 @@ const dummyData = {
     },
     {
       name: "Sains",
-      value: 20,
+      value: 15,
       color: "#FFCE56",
       legendFontColor: "#333",
       legendFontSize: 12
@@ -66,12 +65,19 @@ const dummyData = {
       color: "#4BC0C0",
       legendFontColor: "#333",
       legendFontSize: 12
+    },
+    {
+      name: "Finansial",
+      value: 10,
+      color: "#9966FF",
+      legendFontColor: "#333",
+      legendFontSize: 12
     }
   ],
   weeklyActivity: {
     labels: ["Sen", "Sel", "Rab", "Kam", "Jum"],
     datasets: [{
-      data: [18, 22, 20, 25, 15]
+      data: [25, 28, 26, 30, 22]
     }]
   }
 };
@@ -87,7 +93,6 @@ const DashboardPage = () => {
   const isMediumDevice = width >= 768 && width < 1024;
   const isLargeDevice = width >= 1024;
   
-  // Dynamic chart dimensions
   const chartWidth = isSmallDevice ? width - 40 : isMediumDevice ? width - 60 : Math.min(width * 0.4, 600);
   const chartHeight = isSmallDevice ? 200 : 220;
 
@@ -175,14 +180,18 @@ const DashboardPage = () => {
 
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         <View style={styles.backgroundPattern}>
-          <Image 
-            source={require("../../assets/images/background.svg")}
-            style={[styles.backgroundSvg, { height: height * 1.5 }]}
-            resizeMode="cover"
-          />
+          <View style={styles.backgroundContainer}>
+            {[...Array(Math.ceil(height / 500))].map((_, index) => (
+              <Image 
+                key={index}
+                source={require("../../assets/images/background.svg")}
+                style={[styles.backgroundTile, { top: index * 500 }]}
+                resizeMode="repeat"
+              />
+            ))}
+          </View>
           
           <View style={[styles.contentContainer, { paddingHorizontal: isSmallDevice ? 20 : 40 }]}>
-            {/* Welcome Section */}
             <View style={styles.welcomeContainer}>
               <View style={[styles.welcomeCard, { width: isSmallDevice ? '100%' : '70%' }]}>
                 <View style={styles.welcomeTextContainer}>
@@ -205,7 +214,6 @@ const DashboardPage = () => {
               </View>
             </View>
 
-            {/* Cards Container */}
             <View style={[styles.cardsContainer, { 
               flexDirection: isSmallDevice ? 'column' : 'row',
               alignItems: isSmallDevice ? 'stretch' : 'center'
@@ -237,7 +245,6 @@ const DashboardPage = () => {
               </TouchableOpacity>
             </View>
 
-            {/* Quick Stats */}
             <View style={[styles.quickStatsContainer, {
               flexDirection: isSmallDevice ? 'column' : 'row',
               gap: isSmallDevice ? 10 : 20
@@ -249,30 +256,28 @@ const DashboardPage = () => {
               </View>
               
               <View style={[styles.quickStatCard, { width: isSmallDevice ? '100%' : 'auto' }]}>
-                <Ionicons name="trending-up-outline" size={24} color="#4BC0C0" />
-                <Text style={styles.quickStatNumber}>88%</Text>
-                <Text style={styles.quickStatLabel}>Progress Kelas</Text>
+                <Ionicons name="book-outline" size={24} color="#4BC0C0" />
+                <Text style={styles.quickStatNumber}>78%</Text>
+                <Text style={styles.quickStatLabel}>Kemampuan Literasi</Text>
               </View>
               
               <View style={[styles.quickStatCard, { width: isSmallDevice ? '100%' : 'auto' }]}>
-                <Ionicons name="star-outline" size={24} color="#FFCE56" />
-                <Text style={styles.quickStatNumber}>4.5</Text>
-                <Text style={styles.quickStatLabel}>Rating Kelas</Text>
+                <Ionicons name="calculator-outline" size={24} color="#FFCE56" />
+                <Text style={styles.quickStatNumber}>82%</Text>
+                <Text style={styles.quickStatLabel}>Kemampuan Numerasi</Text>
               </View>
             </View>
 
-            {/* Charts Section */}
             <View style={[styles.chartsSection, {
               flexDirection: isLargeDevice ? 'row' : 'column',
               gap: 20,
               flexWrap: 'wrap'
             }]}>
-              {/* Progress Bulanan */}
               <View style={[styles.chartContainer, { 
                 width: isLargeDevice ? '48%' : '100%' 
               }]}>
-                <Text style={styles.chartTitle}>Progress Pembelajaran Bulanan</Text>
-                <Text style={styles.chartSubtitle}>Rata-rata nilai kelas dalam 6 bulan terakhir</Text>
+                <Text style={styles.chartTitle}>Progress Literasi & Numerasi</Text>
+                <Text style={styles.chartSubtitle}>Perkembangan nilai rata-rata kelas dalam 6 bulan</Text>
                 <LineChart
                   data={dummyData.monthlyProgress}
                   width={chartWidth}
@@ -290,12 +295,11 @@ const DashboardPage = () => {
                 />
               </View>
 
-              {/* Distribusi Literasi */}
               <View style={[styles.chartContainer, { 
                 width: isLargeDevice ? '48%' : '100%' 
               }]}>
-                <Text style={styles.chartTitle}>Distribusi Fokus Literasi</Text>
-                <Text style={styles.chartSubtitle}>Persentase pembelajaran berdasarkan jenis literasi</Text>
+                <Text style={styles.chartTitle}>Distribusi Pembelajaran per Pulau</Text>
+                <Text style={styles.chartSubtitle}>Progress siswa berdasarkan level pembelajaran</Text>
                 <PieChart
                   data={dummyData.literacyData}
                   width={chartWidth}
@@ -308,12 +312,11 @@ const DashboardPage = () => {
                 />
               </View>
 
-              {/* Aktivitas Mingguan */}
               <View style={[styles.chartContainer, { 
                 width: isLargeDevice ? '48%' : '100%' 
               }]}>
-                <Text style={styles.chartTitle}>Aktivitas Siswa Mingguan</Text>
-                <Text style={styles.chartSubtitle}>Jumlah siswa aktif per hari</Text>
+                <Text style={styles.chartTitle}>Partisipasi Siswa</Text>
+                <Text style={styles.chartSubtitle}>Jumlah siswa aktif dalam permainan edukatif</Text>
                 <BarChart
                   data={dummyData.weeklyActivity}
                   width={chartWidth}
@@ -333,77 +336,85 @@ const DashboardPage = () => {
               </View>
             </View>
 
-            {/* Metrics and Events */}
             <View style={[styles.bottomSection, {
               flexDirection: isLargeDevice ? 'row' : 'column',
               gap: 20
             }]}>
-              {/* Metrics Cards */}
               <View style={[styles.metricsContainer, { 
                 width: isLargeDevice ? '58%' : '100%' 
               }]}>
-                <Text style={styles.metricsTitle}>Metrik Pembelajaran</Text>
+                <Text style={styles.metricsTitle}>Capaian Pembelajaran Literasi & Numerasi</Text>
                 
                 <View style={styles.metricCard}>
                   <View style={styles.metricIcon}>
-                    <Ionicons name="checkmark-circle" size={32} color="#4CAF50" />
+                    <Ionicons name="book" size={32} color="#4CAF50" />
                   </View>
                   <View style={styles.metricContent}>
-                    <Text style={styles.metricValue}>156</Text>
-                    <Text style={styles.metricLabel}>Tugas Selesai</Text>
-                    <Text style={styles.metricChange}>+12% dari bulan lalu</Text>
+                    <Text style={styles.metricValue}>134</Text>
+                    <Text style={styles.metricLabel}>Buku Digital Dibaca</Text>
+                    <Text style={styles.metricChange}>+15 buku minggu ini</Text>
                   </View>
                 </View>
 
                 <View style={styles.metricCard}>
                   <View style={styles.metricIcon}>
-                    <Ionicons name="time" size={32} color="#2196F3" />
+                    <Ionicons name="calculator" size={32} color="#2196F3" />
                   </View>
                   <View style={styles.metricContent}>
-                    <Text style={styles.metricValue}>2.5 jam</Text>
-                    <Text style={styles.metricLabel}>Rata-rata Waktu Belajar</Text>
-                    <Text style={styles.metricChange}>+0.3 jam dari minggu lalu</Text>
+                    <Text style={styles.metricValue}>256</Text>
+                    <Text style={styles.metricLabel}>Soal Matematika Diselesaikan</Text>
+                    <Text style={styles.metricChange}>Akurasi 85% (+3%)</Text>
                   </View>
                 </View>
 
                 <View style={styles.metricCard}>
                   <View style={styles.metricIcon}>
-                    <Ionicons name="trophy" size={32} color="#FFC107" />
+                    <Ionicons name="trending-up" size={32} color="#FFC107" />
                   </View>
                   <View style={styles.metricContent}>
-                    <Text style={styles.metricValue}>45</Text>
-                    <Text style={styles.metricLabel}>Pencapaian Dibuka</Text>
-                    <Text style={styles.metricChange}>5 baru minggu ini</Text>
+                    <Text style={styles.metricValue}>12</Text>
+                    <Text style={styles.metricLabel}>Siswa Naik Level</Text>
+                    <Text style={styles.metricChange}>Dari Sumatra ke Jawa</Text>
                   </View>
                 </View>
               </View>
 
-              {/* Upcoming Events */}
               <View style={[styles.eventsContainer, { 
                 width: isLargeDevice ? '38%' : '100%',
                 marginTop: isSmallDevice ? 50 : 0
               }]}>
-                <Text style={styles.eventsTitle}>Kegiatan Mendatang</Text>
+                <Text style={styles.eventsTitle}>Kegiatan Pembelajaran</Text>
                 
                 <View style={styles.eventCard}>
                   <View style={styles.eventDate}>
-                    <Text style={styles.eventDay}>15</Text>
+                    <Text style={styles.eventDay}>18</Text>
                     <Text style={styles.eventMonth}>DES</Text>
                   </View>
                   <View style={styles.eventContent}>
-                    <Text style={styles.eventTitle}>Ujian Literasi Digital</Text>
+                    <Text style={styles.eventTitle}>Lomba Cerdas Cermat Literasi</Text>
                     <Text style={styles.eventTime}>09:00 - 11:00 WIB</Text>
                   </View>
                 </View>
 
                 <View style={styles.eventCard}>
                   <View style={styles.eventDate}>
-                    <Text style={styles.eventDay}>20</Text>
+                    <Text style={styles.eventDay}>22</Text>
                     <Text style={styles.eventMonth}>DES</Text>
                   </View>
                   <View style={styles.eventContent}>
-                    <Text style={styles.eventTitle}>Presentasi Proyek Akhir</Text>
-                    <Text style={styles.eventTime}>13:00 - 15:00 WIB</Text>
+                    <Text style={styles.eventTitle}>Festival Numerasi Nusantara</Text>
+                    <Text style={styles.eventTime}>08:00 - 12:00 WIB</Text>
+                  </View>
+                </View>
+
+                <View style={styles.eventCard}>
+                  <View style={styles.eventDate}>
+                    <Text style={styles.eventDay}>28</Text>
+                    <Text style={styles.eventMonth}>DES</Text>
+                  </View>
+                  <View style={styles.eventContent}>
+                    <Text style={styles.eventTitle}>Pameran Karya Literasi Siswa</Text>
+                    <Text style={styles.eventTime}>10:00 - 15:00 WIB</Text>
                   </View>
                 </View>
               </View>
@@ -438,11 +449,19 @@ const styles = StyleSheet.create({
     flex: 1,
     position: 'relative',
   },
-  backgroundSvg: {
+  backgroundContainer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 1,
+  },
+  backgroundTile: {
     position: 'absolute',
     width: '100%',
+    height: 500,
     opacity: 0.7,
-    zIndex: 1,
   },
   contentContainer: {
     flex: 1,
