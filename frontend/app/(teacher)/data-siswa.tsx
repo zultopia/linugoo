@@ -19,7 +19,8 @@ import { useAuth } from '../../context/AuthContext';
 import Toast from "react-native-toast-message";
 import Navbar from '../components/navbar';
 
-// Link Icon component
+const API_URL = process.env.API_URL || 'http://localhost:5000';
+
 const LinkIcon = () => (
   <Svg width="24" height="24" viewBox="0 0 24 24" fill="none">
     <G>
@@ -32,7 +33,6 @@ const LinkIcon = () => (
 const windowWidth = Dimensions.get('window').width;
 const isTablet = windowWidth >= 768;
 
-// Sample progress data
 const progressData = [
   { label: "Keamanan Internet", value: 83 },
   { label: "Netiket", value: 58 },
@@ -40,7 +40,6 @@ const progressData = [
   { label: "Hoaks", value: 42 },
 ];
 
-// Sample literacy assessment data
 const literacyData = [
   { type: "Baca", percentage: 80 },
   { type: "Numerasi", percentage: 92 },
@@ -49,17 +48,19 @@ const literacyData = [
   { type: "Budaya", percentage: 80 },
 ];
 
-// Sample module data
 const modules = Array(6).fill("Hoaks dan Informasi Palsu");
 const files = Array(5).fill("Hoaks dan Informasi Palsu");
 
-// Interface for student data
 interface Student {
   id: string;
+  _id?: string; 
   username: string;
   name: string;
   email: string;
   role: string;
+  class?: string;
+  grade?: string;
+  profile_picture?: string;
 }
 
 const DataSiswa = () => {
@@ -70,62 +71,113 @@ const DataSiswa = () => {
   const [isClassDropdownOpen, setIsClassDropdownOpen] = useState(false);
   const [students, setStudents] = useState<Student[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isMounted, setIsMounted] = useState(true);
   
-  // Redirect non-teachers to appropriate page
+  useEffect(() => {
+    return () => {
+      setIsMounted(false);
+    };
+  }, []);
+  
   useEffect(() => {
     if (!authLoading && user && user.role !== 'Guru') {
       router.replace('/(games)/base');
     }
-  }, [user, authLoading]);
+  }, [user, authLoading, router]);
 
-  // Fetch students from the backend
+  useEffect(() => {
+    console.log('Auth state:', { user, token, authLoading });
+  }, [user, token, authLoading]);
+
   useEffect(() => {
     const fetchStudents = async () => {
-      if (!token) return;
+      if (!token || !isMounted) {
+        console.log('No token available or component unmounted');
+        setIsLoading(false);
+        return;
+      }
       
       setIsLoading(true);
       try {
-        const response = await fetch(process.env.API_URL + '/users/students', {
+        console.log('Fetching from:', `${API_URL}/api/users/students`);
+        
+        const response = await fetch(`${API_URL}/api/users/students`, {
           method: 'GET',
           headers: {
             'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
           },
         });
         
+        console.log('Response status:', response.status); 
+        
+        if (!isMounted) return;
+        
+        const data = await response.json();
+        console.log('Response data:', data); 
+        
         if (response.ok) {
-          const data = await response.json();
-          setStudents(data.students);
+          let studentsList = [];
           
-          // Set the first student as selected by default if we have students
-          if (data.students && data.students.length > 0 && !selectedStudent) {
-            setSelectedStudent(data.students[0].id);
+          if (data.students && Array.isArray(data.students)) {
+            studentsList = data.students;
+          } else if (Array.isArray(data)) {
+            studentsList = data;
+          } else if (data.data && Array.isArray(data.data)) {
+            studentsList = data.data;
+          }
+          
+          console.log('Students list:', studentsList); 
+          
+          if (isMounted) {
+            setStudents(studentsList);
+            
+            if (studentsList.length > 0 && !selectedStudent) {
+              const firstStudentId = studentsList[0].id || studentsList[0]._id;
+              if (firstStudentId) {
+                setSelectedStudent(firstStudentId);
+              }
+            }
           }
         } else {
+          const errorMessage = data.message || 'Failed to fetch students';
+          console.error('Error from server:', errorMessage);
+          
+          if (isMounted) {
+            Toast.show({
+              type: 'error',
+              position: 'top',
+              text1: 'Error',
+              text2: errorMessage,
+            });
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching students:', error);
+        if (isMounted) {
           Toast.show({
             type: 'error',
             position: 'top',
             text1: 'Error',
-            text2: 'Failed to fetch students',
+            text2: 'Network error. Please check your connection.',
           });
         }
-      } catch (error) {
-        console.error('Error fetching students:', error);
-        Toast.show({
-          type: 'error',
-          position: 'top',
-          text1: 'Error',
-          text2: 'Something went wrong while fetching students',
-        });
       } finally {
-        setIsLoading(false);
+        if (isMounted) {
+          setIsLoading(false);
+        }
       }
     };
     
-    fetchStudents();
-  }, [token]);
+    if (user?.role === 'Guru' && token) {
+      fetchStudents();
+    }
+  }, [token, user, isMounted]); 
 
-  const toggleStudent = (id: string) => {
-    setSelectedStudent(id);
+  const toggleStudent = (id: string | undefined) => {
+    if (id) {
+      setSelectedStudent(id);
+    }
   };
 
   const renderCircleProgress = ({ type, percentage }: { type: string, percentage: number }) => {
@@ -137,7 +189,6 @@ const DataSiswa = () => {
     return (
       <View style={styles.circleProgressContainer}>
         <Svg height="100" width="100" viewBox="0 0 50 50">
-          {/* Background Circle */}
           <Circle
             cx="25"
             cy="25"
@@ -146,7 +197,6 @@ const DataSiswa = () => {
             strokeWidth={strokeWidth}
             fill="transparent"
           />
-          {/* Progress Circle */}
           <Circle
             cx="25"
             cy="25"
@@ -159,7 +209,6 @@ const DataSiswa = () => {
             strokeLinecap="round"
             transform="rotate(-90, 25, 25)"
           />
-          {/* Percentage Text */}
           <SvgText
             x="25"
             y="25"
@@ -179,16 +228,20 @@ const DataSiswa = () => {
   };
 
   const handleNavigation = (route: string) => {
-    if (route === 'profile') {
-      router.push('/(tabs)/profile');
-    } else if (route === 'jurnal') {
-      router.push('/(teacher)/jurnal');
-    } else if (route === 'data-siswa') {
-      router.push('/(teacher)/data-siswa');
+    try {
+      if (route === 'profile') {
+        router.push('/(tabs)/profile');
+      } else if (route === 'jurnal') {
+        router.push('/(teacher)/jurnal');
+      } else if (route === 'data-siswa') {
+        console.log('Already on data-siswa page');
+      }
+    } catch (error) {
+      console.error('Navigation error:', error);
     }
   };
   
-  if (authLoading || (user && user.role !== 'Guru')) {
+  if (authLoading || !user) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#C70039" />
@@ -197,18 +250,23 @@ const DataSiswa = () => {
     );
   }
 
+  if (user.role !== 'Guru') {
+    return (
+      <View style={styles.loadingContainer}>
+        <Text style={styles.loadingText}>Unauthorized Access</Text>
+      </View>
+    );
+  }
+
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
       
-      {/* Header */}
       <Navbar onNavigate={handleNavigation} />
       
       <ScrollView style={styles.mainContent}>
         <View style={isTablet ? styles.contentTablet : styles.contentMobile}>
-          {/* Left Panel - Class and Student Selection */}
           <View style={styles.leftPanel}>
-            {/* Class Selector */}
             <View style={styles.classSelectorContainer}>
               <TouchableOpacity 
                 style={styles.classSelector}
@@ -223,20 +281,37 @@ const DataSiswa = () => {
               
               {isClassDropdownOpen && (
                 <View style={styles.dropdownMenu}>
-                  <TouchableOpacity style={styles.dropdownItem}>
+                  <TouchableOpacity 
+                    style={styles.dropdownItem}
+                    onPress={() => {
+                      setSelectedClass('Kelas 5 - 5A');
+                      setIsClassDropdownOpen(false);
+                    }}
+                  >
                     <Text>Kelas 5 - 5A</Text>
                   </TouchableOpacity>
-                  <TouchableOpacity style={styles.dropdownItem}>
+                  <TouchableOpacity 
+                    style={styles.dropdownItem}
+                    onPress={() => {
+                      setSelectedClass('Kelas 5 - 5B');
+                      setIsClassDropdownOpen(false);
+                    }}
+                  >
                     <Text>Kelas 5 - 5B</Text>
                   </TouchableOpacity>
-                  <TouchableOpacity style={styles.dropdownItem}>
+                  <TouchableOpacity 
+                    style={styles.dropdownItem}
+                    onPress={() => {
+                      setSelectedClass('Kelas 6 - 6A');
+                      setIsClassDropdownOpen(false);
+                    }}
+                  >
                     <Text>Kelas 6 - 6A</Text>
                   </TouchableOpacity>
                 </View>
               )}
             </View>
 
-            {/* Class Info */}
             <View style={styles.classInfo}>
               <Text style={styles.classTitle}>{selectedClass}</Text>
               <Text style={styles.classDetail}>Jumlah Siswa: {students.length}</Text>
@@ -244,7 +319,6 @@ const DataSiswa = () => {
               <View style={styles.divider} />
             </View>
 
-            {/* Student List */}
             <View style={styles.studentListContainer}>
               <View style={styles.studentListHeader}>
                 <Text style={styles.studentListTitle}>Siswa Kelas</Text>
@@ -255,27 +329,29 @@ const DataSiswa = () => {
               ) : (
                 <FlatList
                   data={students}
-                  keyExtractor={(item) => item.id}
+                  keyExtractor={(item) => item.id || item._id || String(item.username)}
                   renderItem={({ item }) => (
                     <TouchableOpacity 
                       style={[
                         styles.studentItem, 
-                        selectedStudent === item.id && styles.studentItemSelected
+                        selectedStudent === (item.id || item._id) && styles.studentItemSelected
                       ]}
-                      onPress={() => toggleStudent(item.id)}
+                      onPress={() => toggleStudent(item.id || item._id)}
                     >
                       <Text style={[
                         styles.studentName, 
-                        selectedStudent === item.id && styles.studentNameSelected
+                        selectedStudent === (item.id || item._id) && styles.studentNameSelected
                       ]}>
-                        {item.name}
+                        {item.name || item.username || 'Unknown Student'}
                       </Text>
                     </TouchableOpacity>
                   )}
                   style={styles.studentList}
                   ListEmptyComponent={
                     <Text style={styles.emptyListText}>
-                      No students found. Add students through the admin panel.
+                      {students.length === 0 
+                        ? "No students found. Add students through the admin panel."
+                        : "Loading students..."}
                     </Text>
                   }
                 />
@@ -283,23 +359,23 @@ const DataSiswa = () => {
             </View>
           </View>
 
-          {/* Right Panel - Student Data */}
           <View style={styles.rightPanel}>
-            {/* Assessment History */}
             <Text style={styles.sectionTitle}>Sejarah Penilaian Literasi</Text>
             
-            {/* Literacy Progress Circles */}
             <View style={styles.literacyProgressContainer}>
-              {literacyData.map((item, index) => renderCircleProgress(item))}
+              {literacyData.map((item, index) => (
+                <React.Fragment key={`literacy-${index}`}>
+                  {renderCircleProgress(item)}
+                </React.Fragment>
+              ))}
             </View>
 
-            {/* Digital Literacy Progress */}
             <View style={styles.literacyStatsContainer}>
               <View style={styles.progressContainer}>
                 <Text style={styles.progressTitle}>Progress Literasi Digital</Text>
                 <View style={styles.barChartContainer}>
                   {progressData.map((item, index) => (
-                    <View key={index} style={styles.barChartColumn}>
+                    <View key={`progress-${index}`} style={styles.barChartColumn}>
                       <View style={[styles.bar, { height: `${item.value}%` }]} />
                       <Text style={styles.barLabel}>{item.label}</Text>
                     </View>
@@ -307,12 +383,11 @@ const DataSiswa = () => {
                 </View>
               </View>
 
-              {/* Related Modules */}
               <View style={styles.modulesContainer}>
                 <Text style={styles.modulesTitle}>Modul Terkait</Text>
                 <ScrollView style={styles.modulesList}>
                   {modules.map((module, index) => (
-                    <View key={index} style={styles.moduleItem}>
+                    <View key={`module-${index}`} style={styles.moduleItem}>
                       <LinkIcon />
                       <Text style={styles.moduleText}>{module}</Text>
                     </View>
@@ -322,7 +397,7 @@ const DataSiswa = () => {
                 <Text style={[styles.modulesTitle, styles.filesTitle]}>File Terkait</Text>
                 <ScrollView style={styles.filesList}>
                   {files.map((file, index) => (
-                    <View key={index} style={styles.fileItem}>
+                    <View key={`file-${index}`} style={styles.fileItem}>
                       <LinkIcon />
                       <Text style={styles.fileText}>{file}</Text>
                     </View>
@@ -353,68 +428,6 @@ const styles = StyleSheet.create({
     marginTop: 10,
     fontSize: 16,
     color: '#555',
-  },
-  header: {
-    backgroundColor: '#FFFFFF',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  logoContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  logo: {
-    width: 40,
-    height: 40,
-  },
-  logoTextContainer: {
-    marginLeft: 8,
-  },
-  logoText: {
-    color: '#E30425',
-    fontSize: 24,
-    fontWeight: 'bold',
-  },
-  logoSubtext: {
-    color: '#E30425',
-    fontSize: 12,
-  },
-  navContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  navItemJurnal: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: '#333333',
-    marginRight: 24,
-  },
-  navItemDataSiswa: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#E30425',
-    marginRight: 24,
-  },
-  profilePic: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: '#C70039',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  profileInitials: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
   },
   mainContent: {
     flex: 1,

@@ -37,6 +37,9 @@ export default function RootLayout() {
           <Stack.Screen name="(teacher)/dashboard" options={{ headerShown: false }} />
           <Stack.Screen name="(teacher)/data-siswa" options={{ headerShown: false }} />
           <Stack.Screen name="(teacher)/jurnal" options={{ headerShown: false }} />
+          <Stack.Screen name="(teacher)/edit-profile" options={{ headerShown: false }} />
+          <Stack.Screen name="(teacher)/change-password" options={{ headerShown: false }} />
+          <Stack.Screen name="(teacher)/help" options={{ headerShown: false }} />
           <Stack.Screen name="(games)/base" options={{ headerShown: false }} />
           <Stack.Screen name="(games)/detail/[id]/page" options={{ headerShown: true, title: "Detail Page" }} />
           <Stack.Screen name="+not-found" />

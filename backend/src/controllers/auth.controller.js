@@ -3,7 +3,6 @@ const authService = require("../services/auth.services");
 const register = async (req, res) => {
   try {
     const { username, email, name, phone, password, role } = req.body;
-    // Memastikan role hanya bisa "Guru" atau "Siswa"
     const validRole = ["Guru", "Siswa"].includes(role) ? role : "Siswa";
     const user = await authService.register(username, email, name, phone, password, validRole);
     res.status(201).json({ message: "Registrasi berhasil!", user });

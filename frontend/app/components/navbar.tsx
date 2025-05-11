@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, Image, StyleSheet, Platform, Dimensions, Modal } from 'react-native';
 import { usePathname, useRouter } from 'expo-router';
 import { useAuth } from '../../context/AuthContext';
+import { Ionicons } from '@expo/vector-icons';
 
 interface NavbarProps {
   onNavigate?: (route: string) => void;
@@ -9,11 +10,17 @@ interface NavbarProps {
 
 const Navbar = ({ onNavigate }: NavbarProps) => {
   const router = useRouter();
-  const { user, logout } = useAuth();
+  const { user, logout, getProfile } = useAuth();
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const screenWidth = Dimensions.get('window').width;
   const isMobile = screenWidth < 768;
+
+  useEffect(() => {
+    if (user) {
+      getProfile();
+    }
+  }, []);
 
   const isActive = (route: string) => {
     if (route === 'jurnal' && pathname.includes('jurnal')) {
@@ -53,7 +60,6 @@ const Navbar = ({ onNavigate }: NavbarProps) => {
     
     try {
       await logout();
-      // Router navigation is handled inside the logout function
     } catch (error) {
       console.error('Error saat logout:', error);
       router.replace('/(auth)/login');
@@ -64,7 +70,6 @@ const Navbar = ({ onNavigate }: NavbarProps) => {
     setMobileMenuOpen(!mobileMenuOpen);
   };
 
-  // Mobile menu
   const renderMobileMenu = () => {
     return (
       <View style={styles.mobileNavbar}>
@@ -83,9 +88,7 @@ const Navbar = ({ onNavigate }: NavbarProps) => {
         </View>
 
         <TouchableOpacity onPress={toggleMobileMenu} style={styles.hamburgerButton}>
-          <View style={styles.hamburgerLine}></View>
-          <View style={styles.hamburgerLine}></View>
-          <View style={styles.hamburgerLine}></View>
+          <Ionicons name="menu" size={24} color="#333333" />
         </TouchableOpacity>
 
         {mobileMenuOpen && (
@@ -100,7 +103,7 @@ const Navbar = ({ onNavigate }: NavbarProps) => {
                 <View style={styles.mobileMenuHeader}>
                   <Text style={styles.mobileMenuTitle}>Menu</Text>
                   <TouchableOpacity onPress={toggleMobileMenu} style={styles.closeButton}>
-                    <Text style={styles.closeButtonText}>✕</Text>
+                    <Ionicons name="close" size={24} color="#333333" />
                   </TouchableOpacity>
                 </View>
                 
@@ -136,11 +139,7 @@ const Navbar = ({ onNavigate }: NavbarProps) => {
                     style={styles.mobileLogoutButton}
                     onPress={handleLogout}
                   >
-                    <Image 
-                      source={require('../../assets/images/logout.png')} 
-                      style={styles.logoutIcon} 
-                      resizeMode="contain"
-                    />
+                    <Ionicons name="log-out-outline" size={24} color="#721c24" />
                     <Text style={styles.mobileLogoutText}>Keluar</Text>
                   </TouchableOpacity>
                 </View>
@@ -152,7 +151,6 @@ const Navbar = ({ onNavigate }: NavbarProps) => {
     );
   };
 
-  // Desktop menu
   const renderDesktopMenu = () => {
     return (
       <View style={styles.navbar}>
@@ -199,23 +197,25 @@ const Navbar = ({ onNavigate }: NavbarProps) => {
             style={styles.profileButton}
             onPress={() => handleNavigation('profile')}
           >
-            <View style={styles.profileIcon}>
-              <Text style={styles.profileInitials}>
-                {user?.name ? user.name.substring(0, 1).toUpperCase() : '?'}
-              </Text>
-            </View>
+            {user?.profileImage ? (
+              <Image
+                source={{ uri: user.profileImage }}
+                style={styles.profileImage}
+              />
+            ) : (
+              <View style={styles.profileIcon}>
+                <Text style={styles.profileInitials}>
+                  {user?.name ? user.name.substring(0, 1).toUpperCase() : '?'}
+                </Text>
+              </View>
+            )}
           </TouchableOpacity>
           
-          {/* Logout Button in Navbar */}
           <TouchableOpacity 
             style={styles.logoutButtonNav}
             onPress={handleLogout}
           >
-            <Image 
-              source={require('../../assets/images/logout.png')} 
-              style={styles.logoutIcon} 
-              resizeMode="contain"
-            />
+            <Ionicons name="log-out-outline" size={24} color="#721c24" />
           </TouchableOpacity>
         </View>
       </View>
@@ -226,7 +226,6 @@ const Navbar = ({ onNavigate }: NavbarProps) => {
 };
 
 const styles = StyleSheet.create({
-  // Desktop styles
   navbar: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -308,6 +307,11 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#FFFFFF',
   },
+  profileImage: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+  },
   logoutButtonNav: {
     marginLeft: 5,
     padding: 8,
@@ -316,12 +320,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  logoutIcon: {
-    width: 24,
-    height: 24,
-  },
   
-  // Mobile styles
   mobileNavbar: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -353,8 +352,6 @@ const styles = StyleSheet.create({
   },
   hamburgerButton: {
     padding: 8,
-    justifyContent: 'space-between',
-    height: 30,
   },
   hamburgerLine: {
     width: 25,

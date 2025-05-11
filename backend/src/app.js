@@ -1,19 +1,18 @@
 require("dotenv").config();
-const functions = require("firebase-functions");
 const express = require("express");
 const cors = require("cors");
 const bodyParser = require("body-parser");
 const authRoutes = require("./routes/auth.routes");
 const userRoutes = require("./routes/user.routes");
 const morgan = require("morgan");
+
 const app = express();
 
-// Middleware
 app.use(express.json());
 app.use(morgan("dev"));
 app.use(cors({
   origin: [
-    process.env.CLIENT_URL || functions.config().client_url,
+    process.env.CLIENT_URL || "http://localhost:19006",
     "http://localhost:19006",
     "http://localhost:5000",
   ],
@@ -29,6 +28,13 @@ app.get("/", (req, res) => {
   res.send("API is running...");
 });
 
-exports.api = functions
-    .runWith({ memory: "1GB" })
-    .https.onRequest(app);
+app.use((err, req, res, next) => {
+  const statusCode = err.statusCode || 500;
+  console.error(err.message, err.stack);
+  res.status(statusCode).json({ 
+    message: err.message,
+    stack: process.env.NODE_ENV === 'production' ? '🥞' : err.stack
+  });
+});
+
+module.exports = app;
