@@ -12,7 +12,7 @@ import {
   Dimensions,
   ScrollView,
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import Svg, { Circle } from 'react-native-svg';
 import InteractiveMapBackground from '@/app/components/games/InteractiveMapBackground';
 
@@ -37,7 +37,7 @@ const classData = [
   },
   {
     id: '2',
-    number: '3',
+    number: '2',
     title: 'Bandung',
     subtitle: 'Jawa Barat',
     culturalItem: 'Batik Motif Megamendung',
@@ -52,7 +52,7 @@ const classData = [
   },
   {
     id: '3',
-    number: '4',
+    number: '3',
     title: 'Palangka Raya',
     subtitle: 'Kalimantan Tengah',
     culturalItem: 'Baju Sangkarut',
@@ -67,7 +67,7 @@ const classData = [
   },
   {
     id: '4',
-    number: '1',
+    number: '4',
     title: 'Makassar',
     subtitle: 'Sulawesi Selatan',
     culturalItem: 'Batik Motif La Galigo',
@@ -83,6 +83,21 @@ const classData = [
   {
     id: '5',
     number: '5',
+    title: 'Daerah Lanjutan',
+    subtitle: 'Literasi Digital',
+    culturalItem: 'Teknologi Modern Indonesia',
+    culturalDescription: 'Di era modern ini, Indonesia sedang bertransformasi digital. Dari Sabang sampai Merauke, teknologi membawa perubahan positif dalam pendidikan, ekonomi, dan budaya. Literasi digital menjadi kunci untuk memastikan semua anak Indonesia dapat memanfaatkan teknologi dengan bijak dan bertanggung jawab.',
+    story: 'Lino melanjutkan perjalanannya untuk mempelajari lebih dalam tentang literasi digital. Kali ini, ia akan fokus pada bagaimana membedakan informasi yang benar dan hoax, serta pentingnya etika digital dalam bermedia sosial. Dengan pemahaman yang lebih baik tentang dunia digital, Lino siap menjadi generasi yang cerdas dan bertanggung jawab di era teknologi.',
+    progress: {
+      reading: 80,
+      writing: 45,
+      locked: true
+    },
+    backgroundImage: require('../../../../assets/images/kelas4-5.svg'),
+  },
+  {
+    id: '6',
+    number: '6',
     title: 'Wanggar',
     subtitle: 'Papua Tengah',
     culturalItem: 'Holim',
@@ -135,10 +150,13 @@ const CircleProgress = ({ percentage, size = 80, strokeWidth = 10, color = '#4CA
   );
 };
 
-export default function ClassDetailPage({ route }: { route: any }) {
-  const navigation = useNavigation<any>();
+export default function ClassDetailPage() {
+  const router = useRouter();
+  const params = useLocalSearchParams();
   const [classInfo, setClassInfo] = useState<any>(null);
-  const classId = route?.params?.id || '1';
+  
+  // Get class ID from params with fallback
+  const classId = params.id as string || '1';
 
   useEffect(() => {
     const currentClass = classData.find(c => c.id === classId);
@@ -156,11 +174,11 @@ export default function ClassDetailPage({ route }: { route: any }) {
   }
 
   const handleStartLearning = () => {
-    navigation.navigate(`Class${classId}Lesson1` as never);
+    router.push(`/(games)/activities/${classId}/page`);
   };
 
   const handleGoBack = () => {
-    navigation.goBack();
+    router.back();
   };
 
   return (
