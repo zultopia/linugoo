@@ -64,9 +64,9 @@ type Activity = InfoActivity | QuizActivity | DialogActivity | MathActivity | Sa
 // Import all images
 const images = {
   // Kelas 1 - Lampung
-  kainTapis: require('../../../../assets/images/lino.png'),
-  gajahLampung: require('../../../../assets/images/lino.png'),
-  aniCharacter: require('../../../../assets/images/lino.png'),
+  kainTapis: require('../../../../assets/images/tapis-lampung.png'),
+  gajahLampung: require('../../../../assets/images/gajah.png'),
+  aniCharacter: require('../../../../assets/images/anak-lampung.png'),
 
   // Kelas 2 - Bandung
   batikMegamendung: require('../../../../assets/images/lino.png'),
@@ -136,16 +136,16 @@ const gameActivities: Record<string, Activity[]> = {
     {
       id: "dialog",
       type: "dialog",
-      title: "Bertemu Ani",
-      description: "Lino bertemu Ani, anak Lampung yang suka membaca cerita rakyat.",
+      title: "Bertemu Azul",
+      description: "Lino bertemu Azul, anak Lampung yang suka membaca cerita rakyat.",
       image: images.aniCharacter,
-      dialogOption: "Ketuk ikon 💬 untuk membaca percakapan dengan Ani.",
+      dialogOption: "Ketuk ikon 💬 untuk membaca percakapan dengan Azul.",
       dialog: [
-        "Ani: Hai! Namaku Ani. Aku suka membaca cerita rakyat Lampung.",
-        "Lino: Hai Ani! Cerita apa yang paling kamu suka?",
-        "Ani: Aku suka cerita tentang Si Pahit Lidah dan Putri Kumbang Malam.",
+        "Azul: Hai! Namaku Azul. Aku suka membaca cerita rakyat Lampung.",
+        "Lino: Hai Azul! Cerita apa yang paling kamu suka?",
+        "Azul: Aku suka cerita tentang Si Pahit Lidah dan Putri Kumbang Malam.",
         "Lino: Wah, menarik! Bisakah kamu ceritakan sedikit?",
-        "Ani: Tentu! Tapi kita harus belajar membaca dulu agar bisa menikmati ceritanya.",
+        "Azul: Tentu! Tapi kita harus belajar membaca dulu agar bisa menikmati ceritanya.",
         "Lino: Baik! Ayo kita belajar bersama!"
       ]
     }
