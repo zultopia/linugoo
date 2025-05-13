@@ -47,6 +47,7 @@ const classData = [
       mapHeight: 750,
     },
     backgroundImage: require("../../../../assets/images/kelas1.svg"),
+    bannerImage: require("../../../../assets/images/tapis-lampung.png"),
   },
   {
     id: "2",
@@ -295,10 +296,17 @@ export default function ClassDetailPage() {
       />
 
       <View style={styles.culturalBanner}>
-        <Text style={styles.culturalTitle}>{classInfo.culturalItem}</Text>
-        <Text style={styles.culturalDescription}>
-          {classInfo.culturalDescription}
-        </Text>
+        <Image
+          source={require("../../../../assets/images/tapis-lampung.png")} 
+          style={styles.culturalBackgroundImage}
+          resizeMode="cover"
+        />
+        <View style={styles.culturalBannerContent}>
+          <Text style={styles.culturalTitle}>{classInfo.culturalItem}</Text>
+          <Text style={styles.culturalDescription}>
+            {classInfo.culturalDescription}
+          </Text>
+        </View>
       </View>
 
       <InteractiveMapViewport
@@ -412,9 +420,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   culturalBanner: {
+    position: "relative",
     backgroundColor: "rgba(249, 246, 238, 0.95)",
     padding: 16,
     paddingTop: StatusBar.currentHeight || 10,
+    overflow: "hidden",
   },
   culturalTitle: {
     fontSize: 22,
@@ -486,6 +496,23 @@ const styles = StyleSheet.create({
   classSubtitle: {
     fontSize: 16,
     color: "#666",
+  },
+  culturalBanner: {
+    position: "relative",
+    backgroundColor: "rgba(249, 246, 238, 0.95)",
+    padding: 16,
+    paddingTop: StatusBar.currentHeight || 10,
+    overflow: "hidden",
+  },
+
+  culturalBackgroundImage: {
+    ...StyleSheet.absoluteFillObject,
+    opacity: 0.2, 
+    zIndex: 0,
+  },
+
+  culturalBannerContent: {
+    zIndex: 1,
   },
   owlCharacter: {
     width: 50,
