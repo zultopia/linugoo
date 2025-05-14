@@ -1,5 +1,6 @@
 import React from "react";
 import { View, Image, StyleSheet, Dimensions } from "react-native";
+import IndonesiaMap from "../../../assets/images/indonesia-map-bg.svg";
 
 interface Props {
   offsetX?: number;
@@ -38,10 +39,15 @@ export default function InteractiveMapViewport({
           ],
         }}
       >
-        <Image
+        {/* <Image
           source={require("../../../assets/images/indonesia-map-bg.svg")}
           style={{ width: mapWidth, height: mapHeight, position: "absolute" }}
           resizeMode="cover"
+        /> */}
+        <IndonesiaMap
+          width={mapWidth}
+          height={mapHeight}
+          style={{ position: "absolute" }}
         />
         {renderMarkers?.(scaledWidth, scaledHeight)}
       </View>

@@ -1,55 +1,70 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useCallback, useState, useEffect, useRef } from "react";
 import {
   View,
   Text,
-  Image,
   StyleSheet,
   TouchableOpacity,
   SafeAreaView,
   StatusBar,
   ScrollView,
   useWindowDimensions,
+  AppState,
+  AppStateStatus,
+  Platform,
 } from "react-native";
-import { useRouter } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
 import StudentNavbar from "../components/StudentsNavbar";
 
-// Ukuran map tetap (relatif ke versi PNG)
+// Import SVG sebagai komponen
+import IndonesiaMap from "../../assets/images/indonesia-map-bg.svg";
+import Kelas1 from "../../assets/images/kelas1.svg";
+import Kelas2 from "../../assets/images/kelas2.svg";
+import Kelas3 from "../../assets/images/kelas3.svg";
+import Kelas4_5 from "../../assets/images/kelas4-5.svg";
+import Kelas6 from "../../assets/images/kelas6.svg";
+
+// Konstanta
 const mapWidth = 1750;
 const mapHeight = 750;
 
-// Data marker
+// Data marker dengan definisi yang lebih baik
 const classMarkers = [
   {
     id: 1,
     name: "Kelas 1",
     location: { topPercent: 25, leftPercent: 13 },
-    image: require("../../assets/images/kelas1.svg"),
+    Component: Kelas1,
+    description: "Belajar membaca dan menulis dasar dengan tema kebudayaan Sumatra."
   },
   {
     id: 2,
     name: "Kelas 2",
     location: { topPercent: 59, leftPercent: 30 },
-    image: require("../../assets/images/kelas2.svg"),
+    Component: Kelas2,
+    description: "Belajar numerasi dasar dengan tema kebudayaan Jawa, Bali, dan Nusa Tenggara."
   },
   {
     id: 3,
     name: "Kelas 3",
     location: { topPercent: 12, leftPercent: 42 },
-    image: require("../../assets/images/kelas3.svg"),
+    Component: Kelas3,
+    description: "Belajar konsep sains dasar dengan tema kebudayaan Kalimantan."
   },
   {
     id: 4,
     name: "Kelas 4-5",
     location: { topPercent: 48, leftPercent: 58 },
-    image: require("../../assets/images/kelas4-5.svg"),
+    Component: Kelas4_5,
+    description: "Belajar literasi digital dengan tema kebudayaan Sulawesi dan lanjutannya."
   },
   {
     id: 6,
     name: "Kelas 6",
     location: { topPercent: 22, leftPercent: 81 },
-    image: require("../../assets/images/kelas6.svg"),
+    Component: Kelas6,
+    description: "Belajar literasi finansial dengan tema kebudayaan Maluku dan Papua."
   },
 ];
 
@@ -58,9 +73,63 @@ export default function GameMapPage() {
   const [selectedClass, setSelectedClass] = useState<number | null>(null);
   const { width: screenWidth } = useWindowDimensions();
   const [hoveredMarkerId, setHoveredMarkerId] = useState<number | null>(null);
+  const [mapKey, setMapKey] = useState(0);
+  const [svgReady, setSvgReady] = useState(false);
+  const appState = useRef(AppState.currentState);
+  const isMounted = useRef(true);
+
+  // Fungsi untuk memaksa render ulang komponen SVG
+  const refreshSvgComponents = useCallback(() => {
+    setSvgReady(false);
+    // Gunakan timeout untuk memberi waktu pada unmount
+    setTimeout(() => {
+      if (isMounted.current) {
+        setMapKey(prev => prev + 1);
+        setSvgReady(true);
+      }
+    }, 50);
+  }, []);
+
+  // Deteksi perubahan status aplikasi (aktif/background)
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', (nextAppState: AppStateStatus) => {
+      if (appState.current.match(/inactive|background/) && nextAppState === 'active') {
+        // App kembali ke foreground
+        refreshSvgComponents();
+      }
+      appState.current = nextAppState;
+    });
+
+    return () => {
+      subscription.remove();
+    };
+  }, [refreshSvgComponents]);
+
+  // Lifecycle hooks
+  useEffect(() => {
+    isMounted.current = true;
+    setSvgReady(true);
+
+    return () => {
+      isMounted.current = false;
+    };
+  }, []);
+
+  // Fokus effect untuk memuat ulang SVG saat kembali ke halaman
+  useFocusEffect(
+    useCallback(() => {
+      refreshSvgComponents();
+      
+      return () => {
+        setSelectedClass(null);
+        setHoveredMarkerId(null);
+      };
+    }, [refreshSvgComponents])
+  );
 
   const isMobile = screenWidth < 768;
 
+  // Handlers
   const handleMarkerPress = (classId: number) => {
     if (selectedClass === classId) {
       router.push(`/(games)/detail/${classId}/page`);
@@ -70,18 +139,21 @@ export default function GameMapPage() {
   };
 
   const closePopup = () => setSelectedClass(null);
+  
   const navigateToClassDetail = (classId: number) =>
     router.push(`/(games)/detail/${classId}/page`);
 
+  // Render marker dengan error handling
   const renderMarkers = (containerWidth: number, containerHeight: number) => {
     return classMarkers.map((marker) => {
       const topValue = (containerHeight * marker.location.topPercent) / 100;
       const leftValue = (containerWidth * marker.location.leftPercent) / 100;
       const isHovered = hoveredMarkerId === marker.id;
+      const MarkerIcon = marker.Component;
 
       return (
         <View
-          key={marker.id}
+          key={`marker-${marker.id}-${mapKey}`}
           style={[
             styles.markerContainer,
             {
@@ -95,11 +167,19 @@ export default function GameMapPage() {
             onPress={() => handleMarkerPress(marker.id)}
             onPressIn={() => setHoveredMarkerId(marker.id)}
             onPressOut={() => setHoveredMarkerId(null)}
-            onAccessibilityTap={() => setHoveredMarkerId(null)}
             activeOpacity={0.8}
           >
             <View style={styles.markerImageContainer}>
-              <Image source={marker.image} style={styles.markerImage} />
+              <View style={styles.svgWrapper}>
+                {svgReady && (
+                  <MarkerIcon
+                    key={`svg-marker-${marker.id}-${mapKey}`}
+                    width={80}
+                    height={80}
+                    fill={isHovered ? "#E30425" : "#000000"}
+                  />
+                )}
+              </View>
               <Text style={styles.markerText}>{marker.name}</Text>
             </View>
             <View style={styles.markerArrow} />
@@ -109,17 +189,21 @@ export default function GameMapPage() {
     });
   };
 
+  // Render map dengan error handling
   const renderMap = () => {
     if (isMobile) {
       return (
-        <ScrollView horizontal>
+        <ScrollView horizontal key={`mobile-map-${mapKey}`}>
           <ScrollView>
             <View style={styles.mapContainer}>
-              <Image
-                source={require("../../assets/images/indonesia-map-bg.svg")}
-                style={styles.mapImage}
-                resizeMode="cover"
-              />
+              {svgReady && (
+                <IndonesiaMap
+                  key={`indonesia-map-mobile-${mapKey}`}
+                  width={mapWidth}
+                  height={mapHeight}
+                  style={styles.mapImage}
+                />
+              )}
               {renderMarkers(mapWidth, mapHeight)}
             </View>
           </ScrollView>
@@ -127,22 +211,25 @@ export default function GameMapPage() {
       );
     }
 
-    // DESKTOP: auto-fit map within screen width
     const scale = screenWidth / mapWidth;
     const heightScaled = mapHeight * scale;
 
     return (
       <View
+        key={`desktop-map-${mapKey}`}
         style={[
           styles.mapContainerFixed,
           { width: screenWidth, height: heightScaled },
         ]}
       >
-        <Image
-          source={require("../../assets/images/indonesia-map-bg.svg")}
-          style={styles.mapImage}
-          resizeMode="contain"
-        />
+        {svgReady && (
+          <IndonesiaMap
+            key={`indonesia-map-desktop-${mapKey}`}
+            width={mapWidth}
+            height={mapHeight}
+            style={styles.mapImage}
+          />
+        )}
         {renderMarkers(screenWidth, heightScaled)}
       </View>
     );
@@ -162,24 +249,13 @@ export default function GameMapPage() {
       {selectedClass !== null && (
         <View style={styles.popup}>
           <TouchableOpacity onPress={closePopup} style={styles.closeButton}>
-            <Text style={styles.closeButtonText}>X</Text>
+            <Text style={styles.closeButtonText}>✕</Text>
           </TouchableOpacity>
           <Text style={styles.popupTitle}>
             {classMarkers.find((marker) => marker.id === selectedClass)?.name}
           </Text>
           <Text style={styles.popupDescription}>
-            {selectedClass === 1 &&
-              "Belajar membaca dan menulis dasar dengan tema kebudayaan Sumatra."}
-            {selectedClass === 2 &&
-              "Belajar numerasi dasar dengan tema kebudayaan Jawa, Bali, dan Nusa Tenggara."}
-            {selectedClass === 3 &&
-              "Belajar konsep sains dasar dengan tema kebudayaan Kalimantan."}
-            {selectedClass === 4 &&
-              "Belajar literasi digital dengan tema kebudayaan Sulawesi."}
-            {selectedClass === 5 &&
-              "Melanjutkan pembelajaran literasi digital dengan tema lanjutan."}
-            {selectedClass === 6 &&
-              "Belajar literasi finansial dengan tema kebudayaan Maluku dan Papua."}
+            {classMarkers.find((marker) => marker.id === selectedClass)?.description}
           </Text>
           <TouchableOpacity
             style={styles.startButton}
@@ -201,6 +277,7 @@ const styles = StyleSheet.create({
   mapContainer: {
     width: mapWidth,
     height: mapHeight,
+    position: "relative",
   },
   mapContainerFixed: {
     position: "relative",
@@ -226,10 +303,13 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
   },
-  markerImage: {
+  svgWrapper: {
+    borderRadius: 12,
+    overflow: "hidden",
     width: 80,
     height: 80,
-    borderRadius: 12,
+    justifyContent: "center",
+    alignItems: "center",
   },
   markerText: {
     fontSize: 14,

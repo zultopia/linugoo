@@ -9,7 +9,12 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSAppTransportSecurity": {
+          "NSAllowsArbitraryLoads": true
+        }
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -36,7 +41,8 @@
       ]
     ],
     "experiments": {
-      "typedRoutes": true
+      "typedRoutes": true,
+      "tsconfigPaths": true
     },
     "extra": {
       "router": {
@@ -44,7 +50,8 @@
       },
       "eas": {
         "projectId": "933a24b5-90ca-47aa-a103-cc810b4808f1"
-      }
+      },
+      "apiUrl": "https://192.168.1.105:5000"
     },
     "runtimeVersion": {
       "policy": "appVersion"
@@ -52,5 +59,8 @@
     "updates": {
       "url": "https://u.expo.dev/933a24b5-90ca-47aa-a103-cc810b4808f1"
     }
+    // "packagerOpts": {
+    //   "proxy": true
+    // }
   }
 }

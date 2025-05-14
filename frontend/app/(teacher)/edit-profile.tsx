@@ -18,7 +18,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { useAuth } from '../../context/AuthContext';
 import { Ionicons } from '@expo/vector-icons';
 
-const API_URL = 'http://localhost:5000/api';
+const API_URL = process.env.API_URL || 'http://localhost:3000';
 
 export default function EditProfile() {
   const router = useRouter();
@@ -39,7 +39,7 @@ export default function EditProfile() {
 
   const fetchProfile = async () => {
     try {
-      const response = await fetch(`${API_URL}/users/profile`, {
+      const response = await fetch(`${API_URL}/api/users/profile`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -114,7 +114,7 @@ export default function EditProfile() {
   const handleSave = async () => {
     setIsLoading(true);
     try {
-      const response = await fetch(`${API_URL}/users/profile`, {
+      const response = await fetch(`${API_URL}/api/users/profile`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,

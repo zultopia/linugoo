@@ -21,7 +21,7 @@ import { Ionicons } from '@expo/vector-icons';
 const { width } = Dimensions.get('window');
 const isSmallDevice = width < 768;
 
-const API_URL = 'http://localhost:5000';
+const API_URL = process.env.API_URL || 'http://localhost:5000';
 
 interface ProfileData {
   id: string;
@@ -54,7 +54,7 @@ export default function ProfilePage() {
         console.log('Fetching profile with token:', token);
         console.log('Using API URL:', API_URL);
         
-        const response = await fetch(`${API_URL}/users/profile`, {
+        const response = await fetch(`${API_URL}/api/users/profile`, {
           method: 'GET',
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -117,7 +117,7 @@ export default function ProfilePage() {
       
       setIsLoading(true);
       try {
-        const response = await fetch(`${API_URL}/users/profile`, {
+        const response = await fetch(`${API_URL}/api/users/profile`, {
           method: 'GET',
           headers: {
             'Authorization': `Bearer ${token}`,

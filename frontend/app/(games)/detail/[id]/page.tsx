@@ -179,7 +179,7 @@ const classData = [
 ];
 
 const CircleProgress = ({
-  percentage,
+  percentage = 0,
   size = 50,
   strokeWidth = 6,
   color = "#4CAF50",
@@ -284,7 +284,7 @@ export default function ClassDetailPage() {
   };
 
   const handleGoBack = () => {
-    router.back();
+    router.push(`/(games)/base`);
   };
 
   return (
@@ -497,14 +497,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: "#666",
   },
-  culturalBanner: {
-    position: "relative",
-    backgroundColor: "rgba(249, 246, 238, 0.95)",
-    padding: 16,
-    paddingTop: StatusBar.currentHeight || 10,
-    overflow: "hidden",
-  },
-
   culturalBackgroundImage: {
     ...StyleSheet.absoluteFillObject,
     opacity: 0.2, 

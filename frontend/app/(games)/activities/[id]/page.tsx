@@ -11,438 +11,16 @@ import {
   SafeAreaView,
   StatusBar,
   TextInput,
+  ActivityIndicator,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
+import * as ImagePicker from 'expo-image-picker';
+import { Camera } from 'expo-camera';
 
-// Define types for activities
-interface BaseActivity {
-  id: string;
-  type: string;
-  title: string;
-  description: string;
-  image: any; // Changed from string to any to accept require() images
-}
-
-interface InfoActivity extends BaseActivity {
-  type: 'info';
-  infoText: string;
-  facts: string[];
-}
-
-interface QuizActivity extends BaseActivity {
-  type: 'quiz';
-  question: string;
-  options: Array<{id: string, text: string}>;
-  correctAnswer: string;
-}
-
-interface DialogActivity extends BaseActivity {
-  type: 'dialog';
-  dialogOption: string;
-  dialog: string[];
-}
-
-interface MathActivity extends BaseActivity {
-  type: 'math';
-  question: string;
-  options: Array<{id: string, text: string}>;
-  correctAnswer: string;
-}
-
-interface SafetyActivity extends BaseActivity {
-  type: 'safety';
-  questions: Array<{text: string, safe: boolean}>;
-}
-
-interface PasswordActivity extends BaseActivity {
-  type: 'password';
-  requirements: Array<{text: string, color: string}>;
-}
-
-type Activity = InfoActivity | QuizActivity | DialogActivity | MathActivity | SafetyActivity | PasswordActivity;
-
-// Import all images
-const images = {
-  // Kelas 1 - Lampung
-  kainTapis: require('../../../../assets/images/tapis-lampung.png'),
-  gajahLampung: require('../../../../assets/images/gajah.png'),
-  aniCharacter: require('../../../../assets/images/anak-lampung.png'),
-
-  // Kelas 2 - Bandung
-  batikMegamendung: require('../../../../assets/images/lino.png'),
-  surabi: require('../../../../assets/images/lino.png'),
-  polaBatik: require('../../../../assets/images/lino.png'),
-
-  // Kelas 3 - Palangka Raya
-  hutanKalimantan: require('../../../../assets/images/lino.png'),
-  objekAir: require('../../../../assets/images/lino.png'),
-  safetyScience: require('../../../../assets/images/lino.png'),
-
-  // Kelas 4 - Makassar
-  phinisiDiagram: require('../../../../assets/images/phinisi-diagram.png'),
-  phinisiQuiz: require('../../../../assets/images/lino.png'),
-  rafiCharacter: require('../../../../assets/images/lino.png'),
-  pisangEpe: require('../../../../assets/images/lino.png'),
-  safetyCheck: require('../../../../assets/images/lino.png'),
-  passwordInput: require('../../../../assets/images/lino.png'),
-  internetResponsibility: require('../../../../assets/images/lino.png'),
-
-  // Kelas 5 - Lanjutan
-  hoaxNews: require('../../../../assets/images/lino.png'),
-
-  // Kelas 6 - Papua
-  pasarPapua: require('../../../../assets/images/lino.png'),
-  tabungan: require('../../../../assets/images/lino.png'),
-  kebutuhan: require('../../../../assets/images/lino.png'),
-  
-  // Character
-  lino: require('../../../../assets/images/lino.png'),
-};
-
-// Game activities data
-const gameActivities: Record<string, Activity[]> = {
-  // Kelas 1 - Bandar Lampung (Literasi Baca Tulis)
-  "1": [
-    {
-      id: "intro",
-      type: "info",
-      title: "Kain Tapis Lampung",
-      description: "Lino tiba di Lampung, tanah yang terkenal dengan Kain Tapis yang indah. Mari kita pelajari tentang kain tradisional ini sambil belajar membaca!",
-      image: images.kainTapis,
-      infoText: "Ketuk untuk melihat fakta!",
-      facts: [
-        "Kain Tapis adalah kain tradisional khas Lampung",
-        "Kain ini dibuat dengan tenunan benang emas dan perak",
-        "Motif geometris dan flora sering ditemukan pada Kain Tapis",
-        "Kain Tapis digunakan dalam upacara adat",
-        "Pembuatan Kain Tapis membutuhkan waktu berbulan-bulan"
-      ]
-    },
-    {
-      id: "quiz1",
-      type: "quiz",
-      title: "Membaca Kata",
-      description: "Mari belajar membaca kata-kata sederhana tentang budaya Lampung.",
-      question: "Manakah kata yang benar untuk gambar ini?",
-      image: images.gajahLampung,
-      options: [
-        { id: "1", text: "GAJAH" },
-        { id: "2", text: "KUDA" },
-        { id: "3", text: "AYAM" },
-        { id: "4", text: "BEBEK" }
-      ],
-      correctAnswer: "1"
-    },
-    {
-      id: "dialog",
-      type: "dialog",
-      title: "Bertemu Azul",
-      description: "Lino bertemu Azul, anak Lampung yang suka membaca cerita rakyat.",
-      image: images.aniCharacter,
-      dialogOption: "Ketuk ikon 💬 untuk membaca percakapan dengan Azul.",
-      dialog: [
-        "Azul: Hai! Namaku Azul. Aku suka membaca cerita rakyat Lampung.",
-        "Lino: Hai Azul! Cerita apa yang paling kamu suka?",
-        "Azul: Aku suka cerita tentang Si Pahit Lidah dan Putri Kumbang Malam.",
-        "Lino: Wah, menarik! Bisakah kamu ceritakan sedikit?",
-        "Azul: Tentu! Tapi kita harus belajar membaca dulu agar bisa menikmati ceritanya.",
-        "Lino: Baik! Ayo kita belajar bersama!"
-      ]
-    }
-  ],
-
-  // Kelas 2 - Bandung (Numerasi) 
-  "2": [
-    {
-      id: "intro",
-      type: "info",
-      title: "Batik Megamendung",
-      description: "Lino sampai di Bandung, kota yang sejuk dengan batik Megamendung yang indah. Mari kita belajar menghitung sambil menikmati keindahan batik!",
-      image: images.batikMegamendung,
-      infoText: "Ketuk untuk melihat fakta!",
-      facts: [
-        "Megamendung adalah motif batik khas Cirebon",
-        "Motif awan berlapis melambangkan hujan yang membawa kesuburan",
-        "Warna biru mendominasi batik Megamendung",
-        "Batik ini dipengaruhi budaya Tiongkok",
-        "Ada 7-9 gradasi warna dalam motif Megamendung"
-      ]
-    },
-    {
-      id: "math",
-      type: "math",
-      title: "Menghitung Surabi",
-      description: "Kamu dan teman-teman menikmati Surabi, kue tradisional Bandung.",
-      image: images.surabi,
-      question: "Ada 12 Surabi di piring. Jika kamu makan 3, berapa yang tersisa?",
-      options: [
-        { id: "1", text: "7" },
-        { id: "2", text: "8" },
-        { id: "3", text: "9" },
-        { id: "4", text: "10" }
-      ],
-      correctAnswer: "3"
-    },
-    {
-      id: "quiz1",
-      type: "quiz",
-      title: "Pola Angka",
-      description: "Mari belajar mengenali pola angka dari motif batik.",
-      question: "Lengkapi pola: 2, 4, 6, 8, ...",
-      image: images.polaBatik,
-      options: [
-        { id: "1", text: "9" },
-        { id: "2", text: "10" },
-        { id: "3", text: "11" },
-        { id: "4", text: "12" }
-      ],
-      correctAnswer: "2"
-    }
-  ],
-
-  // Kelas 3 - Palangka Raya (Sains)
-  "3": [
-    {
-      id: "intro",
-      type: "info",
-      title: "Hutan Kalimantan",
-      description: "Lino tiba di Palangka Raya, Kalimantan Tengah, dengan hutan tropis yang lebat. Mari kita pelajari sains melalui eksperimen sederhana!",
-      image: images.hutanKalimantan,
-      infoText: "Ketuk untuk melihat fakta!",
-      facts: [
-        "Kalimantan memiliki hutan hujan tropis terluas di Indonesia",
-        "Orangutan adalah primata khas Kalimantan",
-        "Hutan Kalimantan menyimpan banyak jenis tumbuhan obat",
-        "Pohon Ulin adalah kayu terkuat dari Kalimantan",
-        "Sungai Kahayan adalah sungai terpanjang di Kalimantan Tengah"
-      ]
-    },
-    {
-      id: "quiz1",
-      type: "quiz",
-      title: "Eksperimen Terapung-Tenggelam",
-      description: "Mari uji benda mana yang mengapung di air sungai.",
-      question: "Manakah benda yang akan mengapung di air?",
-      image: images.objekAir,
-      options: [
-        { id: "1", text: "Batu" },
-        { id: "2", text: "Daun kering" },
-        { id: "3", text: "Paku" },
-        { id: "4", text: "Koin" }
-      ],
-      correctAnswer: "2"
-    },
-    {
-      id: "safety",
-      type: "safety",
-      title: "Keamanan Eksperimen",
-      description: "Sebelum melakukan eksperimen, kita harus tahu cara yang aman.",
-      questions: [
-        {
-          text: "Menggunakan sarung tangan saat eksperimen",
-          safe: true
-        },
-        {
-          text: "Mencicipi bahan eksperimen",
-          safe: false
-        },
-        {
-          text: "Mencuci tangan setelah eksperimen",
-          safe: true
-        }
-      ],
-      image: images.safetyScience
-    }
-  ],
-
-  // Makassar activities (ID: 4)
-  "4": [
-    {
-      id: "intro",
-      type: "info",
-      title: "Kapal Phinisi",
-      description: "Lino tiba di Makassar, kota pesisir yang kaya budaya dan sejarah. Angin laut bertiup sejuk saat kapal-kapal berlayar di Pelabuhan Paotere. Di sini, masyarakat hidup berdampingan dengan laut, dari para nelayan hingga pedagang yang menjual hasil laut segar.",
-      image: images.phinisiDiagram,
-      infoText: "Ketuk untuk melihat fakta!",
-      facts: [
-        "Kapal Phinisi adalah kapal layar tradisional dari Sulawesi Selatan",
-        "Pembuatan kapal Phinisi tidak menggunakan paku, hanya kayu dan tali tambang",
-        "Kapal Phinisi memiliki dua tiang utama dan tujuh layar",
-        "Phinisi dikenal sebagai kapal yang tangguh dan mampu mengarungi lautan dalam",
-        "UNESCO mengakui pembuatan kapal Phinisi sebagai Warisan Budaya Takbenda pada tahun 2017"
-      ]
-    },
-    {
-      id: "quiz1",
-      type: "quiz",
-      title: "Bagian Kapal Phinisi",
-      description: "Di pelabuhan, terdapat kapal dengan nama kapal Phinisi. Kapal ini dibuat dengan teknik tradisional tanpa paku, hanya menggunakan kayu dan tali tambang. Keahlian ini diwariskan turun-temurun oleh para pembuat kapal Makassar.",
-      question: "Bagian yang diberi tanda tanya adalah...",
-      image: images.phinisiQuiz,
-      options: [
-        { id: "1", text: "Tiang Utama Sombala" },
-        { id: "2", text: "Layar Tanpasere" },
-        { id: "3", text: "Layar Utama Sombala" },
-        { id: "4", text: "Layar Pembantu" }
-      ],
-      correctAnswer: "3"
-    },
-    {
-      id: "dialog",
-      type: "dialog",
-      title: "Bertemu Rafi",
-      description: "Setelah berjalan-jalan, Lino bertemu Rafi, anak Makassar yang suka belajar dan membuat konten digital. Ia menjelaskan bagaimana internet membantu belajar dan berbagi ilmu.",
-      image: images.rafiCharacter,
-      dialogOption: "Ketuk ikon 💬 untuk membaca percakapan dengan Rafi tentang dunia digital.",
-      dialog: [
-        "Rafi: Hai! Namaku Rafi. Aku suka belajar tentang teknologi dan internet.",
-        "Lino: Hai Rafi! Apa yang kamu suka dari internet?",
-        "Rafi: Internet membantu kita mencari informasi dan belajar hal baru. Kita bisa belajar dari video, artikel, dan kursus online.",
-        "Lino: Wah, keren! Apa lagi yang bisa kita lakukan dengan internet?",
-        "Rafi: Kita bisa berbagi pengetahuan dengan membuat blog atau video. Tapi kita juga harus hati-hati dan menjaga keamanan data kita.",
-        "Lino: Oh, maksudnya data pribadi ya?",
-        "Rafi: Betul! Tidak semua orang di internet memiliki niat baik. Kita harus pintar menjaga informasi pribadi kita."
-      ]
-    },
-    {
-      id: "math",
-      type: "math",
-      title: "Pisang Epe",
-      description: "Saat lapar, kamu dan Rafi menikmati Pisang Epe yang dipotong menjadi beberapa bagian.",
-      image: images.pisangEpe,
-      question: "Pisang Epe dibagi menjadi 8 bagian. Jika kamu makan 2 bagian, berapa pecahan yang kamu makan?",
-      options: [
-        { id: "1", text: "1/2" },
-        { id: "2", text: "1/5" },
-        { id: "3", text: "1/6" },
-        { id: "4", text: "1/8" },
-        { id: "5", text: "1/3" },
-        { id: "6", text: "3/4" },
-        { id: "7", text: "5/6" },
-        { id: "8", text: "1/3" },
-        { id: "9", text: "2/8" },
-        { id: "10", text: "7/8" }
-      ],
-      correctAnswer: "9"
-    },
-    {
-      id: "safety",
-      type: "safety",
-      title: "Keamanan Internet",
-      description: "Setelah mengisi perut, Lino dan Rafi mulai membahas mengenai internet. Rafi menunjukkan bagaimana internet membantunya belajar dan berbagi pengetahuan. Rafi mengingatkan bahwa di internet, tidak semua orang memiliki niat baik. Kita harus berhati-hati dalam membagikan informasi pribadi seperti alamat rumah, nomor telepon, atau password.",
-      questions: [
-        {
-          text: "Membagikan password ke teman dekat",
-          safe: false
-        },
-        {
-          text: "Menggunakan password yang kuat dengan kombinasi huruf dan angka",
-          safe: true
-        },
-        {
-          text: "Menulis informasi pribadi di media sosial",
-          safe: false
-        }
-      ],
-      image: images.safetyCheck
-    },
-    {
-      id: "password",
-      type: "password",
-      title: "Buat Password",
-      description: "Setelah mengetahui mana tindakan yang aman dan mana tindakan yang tidak aman, Lino menyadari bahwa dia perlu melindungi data pribadinya. Bantu Lino untuk membuat kata sandi yang kuat!",
-      requirements: [
-        { text: "Minimal 8 karakter", color: "#4CAF50" },
-        { text: "Setidaknya memiliki huruf besar dan kecil", color: "#FFC107" },
-        { text: "Harus mengandung angka", color: "#E91E63" }
-      ],
-      image: images.passwordInput
-    }
-  ],
-
-  // Kelas 5 - Lanjutan Literasi Digital
-  "5": [
-    {
-      id: "intro",
-      type: "info",
-      title: "Internet yang Bertanggung Jawab",
-      description: "Lino melanjutkan perjalanannya untuk belajar lebih dalam tentang penggunaan internet yang bijak dan bertanggung jawab.",
-      image: images.internetResponsibility,
-      infoText: "Ketuk untuk melihat fakta!",
-      facts: [
-        "Etika digital penting untuk keamanan online",
-        "Tidak semua informasi di internet adalah benar",
-        "Privasi online harus dijaga dengan baik",
-        "Cyberbullying dapat dicegah dengan sikap positif",
-        "Digital footprint akan selalu ada di internet"
-      ]
-    },
-    {
-      id: "quiz1",
-      type: "quiz",
-      title: "Mengenali Hoax",
-      description: "Mari belajar membedakan informasi yang benar dan hoax.",
-      question: "Manakah ciri-ciri berita hoax?",
-      image: images.hoaxNews,
-      options: [
-        { id: "1", text: "Judul sensasional dan provokatif" },
-        { id: "2", text: "Memiliki sumber yang jelas" },
-        { id: "3", text: "Dapat diverifikasi" },
-        { id: "4", text: "Ditulis dengan bahasa yang baik" }
-      ],
-      correctAnswer: "1"
-    }
-  ],
-
-  // Kelas 6 - Wanggar, Papua (Literasi Finansial)
-  "6": [
-    {
-      id: "intro",
-      type: "info",
-      title: "Pasar Tradisional Papua",
-      description: "Lino tiba di Papua, mempelajari bagaimana masyarakat mengelola keuangan melalui pasar tradisional.",
-      image: images.pasarPapua,
-      infoText: "Ketuk untuk melihat fakta!",
-      facts: [
-        "Noken adalah tas tradisional Papua untuk membawa barang",
-        "Sistem barter masih digunakan di beberapa daerah Papua",
-        "Sagu adalah makanan pokok masyarakat Papua",
-        "Pasar Mama-mama Papua terkenal dengan hasil buminya",
-        "Koteka adalah pakaian tradisional pria suku Dani"
-      ]
-    },
-    {
-      id: "math",
-      type: "math",
-      title: "Menabung untuk Masa Depan",
-      description: "Lino belajar menabung dari hasil panen sagu.",
-      image: images.tabungan,
-      question: "Jika menabung Rp 5.000 setiap hari selama 10 hari, berapa total tabungan?",
-      options: [
-        { id: "1", text: "Rp 40.000" },
-        { id: "2", text: "Rp 45.000" },
-        { id: "3", text: "Rp 50.000" },
-        { id: "4", text: "Rp 55.000" }
-      ],
-      correctAnswer: "3"
-    },
-    {
-      id: "quiz1",
-      type: "quiz",
-      title: "Prioritas Keuangan",
-      description: "Mari belajar mengatur prioritas pengeluaran.",
-      question: "Manakah yang termasuk kebutuhan pokok?",
-      image: images.kebutuhan,
-      options: [
-        { id: "1", text: "Mainan baru" },
-        { id: "2", text: "Makanan sehari-hari" },
-        { id: "3", text: "Gadget terbaru" },
-        { id: "4", text: "Jajan di kantin" }
-      ],
-      correctAnswer: "2"
-    }
-  ]
-};
+import { InfoActivity, QuizActivity, MathActivity, DialogActivity, SafetyActivity, PasswordActivity, WritingScanActivity } from '@/types/activity.types';  
+import { gameActivities } from '@/data/gameActivity';
+import { images } from '@/data/images';
+import { analyzeHandwriting } from '@/utils/handwriting.services';
 
 export default function LearningActivitiesPage() {
   const router = useRouter();
@@ -460,6 +38,27 @@ export default function LearningActivitiesPage() {
   });
   const [showScore, setShowScore] = useState(false);
   const [finalScore, setFinalScore] = useState(0);
+  const [hasPermission, setHasPermission] = useState<boolean | null>(null);
+  const [capturedImage, setCapturedImage] = useState<string | null>(null);
+  const [scanResult, setScanResult] = useState<null | {
+    score: number;
+    aspectScores?: {
+      legibility: number;
+      consistency: number;
+      spacing: number;
+      alignment: number;
+    };
+    feedback: string[];
+    overallImpression: string;
+    recommendations?: {
+      title: string;
+      description: string;
+      exercise: string;
+    }[];
+    processedImageUri?: string;
+  }>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [showRecommendations, setShowRecommendations] = useState(false);
 
   // Get class ID from route params - with fallback
   const classId = params.id as string || '1';
@@ -469,6 +68,13 @@ export default function LearningActivitiesPage() {
   
   // Current activity
   const currentActivity = activities[currentActivityIndex];
+
+  useEffect(() => {
+    (async () => {
+      const { status } = await Camera.requestCameraPermissionsAsync();
+      setHasPermission(status === 'granted');
+    })();
+  }, []);
 
   // Handle goBack navigation
   const handleGoBack = () => {
@@ -503,7 +109,6 @@ export default function LearningActivitiesPage() {
     let correctAnswers = 0;
     let totalQuestions = 0;
 
-    // Loop through all activities
     activities.forEach(activity => {
       if (activity.type === 'quiz' || activity.type === 'math') {
         totalQuestions++;
@@ -511,27 +116,19 @@ export default function LearningActivitiesPage() {
           correctAnswers++;
         }
       } else if (activity.type === 'safety') {
-        activity.questions.forEach((question, index) => {
-          totalQuestions++;
-          if (answers[`${activity.id}_${index}`] === question.safe) {
-            correctAnswers++;
-          }
-        });
+        totalQuestions++;
+        const allCorrect = activity.questions.every((question, index) => 
+          answers[`${activity.id}_${index}`] === question.safe
+        );
+        if (allCorrect) correctAnswers++;
       } else if (activity.type === 'password') {
         totalQuestions++;
         if (passwordValid.length && passwordValid.casing && passwordValid.numbers) {
           correctAnswers++;
         }
-      } else if (activity.type === 'dialog' || activity.type === 'info') {
-        // These are considered completed if the user went through them
-        totalQuestions++;
-        if (answers[activity.id]) {
-          correctAnswers++;
-        }
       }
     });
 
-    // Calculate percentage
     const score = Math.round((correctAnswers / totalQuestions) * 100);
     setFinalScore(score);
   };
@@ -603,6 +200,163 @@ export default function LearningActivitiesPage() {
       casing: hasBothCases,
       numbers: hasNumbers
     });
+  };
+
+  const takePicture = async () => {
+    if (!hasPermission) {
+      alert('Izin akses kamera diperlukan untuk fitur ini.');
+      return;
+    }
+    
+    try {
+      const result = await ImagePicker.launchCameraAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [4, 3],
+        quality: 0.8,
+      });
+      
+      if (!result.canceled) {
+        setCapturedImage(result.assets[0].uri);
+        // Process the captured image
+        processWritingImage(result.assets[0].uri);
+      }
+    } catch (error) {
+      console.error('Error taking picture:', error);
+      alert('Terjadi kesalahan saat mengambil gambar.');
+    }
+  };
+
+  const processWritingImage = async (imageUri: string) => {
+    setIsProcessing(true);
+    
+    try {
+      // Use the real handwriting analysis service
+      const result = await analyzeHandwriting(imageUri);
+      
+      // Update the state with real results including aspect scores
+      setScanResult({
+        score: result.score,
+        aspectScores: result.aspectScores,
+        feedback: result.feedback,
+        overallImpression: result.overallImpression,
+        processedImageUri: result.processedImageUri,
+        recommendations: result.recommendations
+      });
+      
+      // Mark activity as completed
+      setAnswers({
+        ...answers,
+        [currentActivity.id]: true
+      });
+    } catch (error) {
+      console.error('Error analyzing handwriting:', error);
+      
+      // Generate default recommendations for fallback
+      const defaultRecommendations = [
+        {
+          title: "Latihan Bentuk Huruf",
+          description: "Perhatikan bentuk setiap huruf saat menulis.",
+          exercise: "Tuliskan huruf alfabet (a-z) dengan hati-hati dan perhatikan bentuknya."
+        },
+        {
+          title: "Latihan Konsistensi",
+          description: "Jaga agar ukuran huruf tetap konsisten.",
+          exercise: "Tuliskan nama lengkapmu 5 kali dengan ukuran huruf yang sama."
+        },
+        {
+          title: "Latihan Kelurusan",
+          description: "Gunakan kertas bergaris untuk panduan menulis yang lurus.",
+          exercise: "Tuliskan sebuah kalimat pendek pada kertas bergaris dan usahakan untuk mengikuti garis."
+        }
+      ];
+      
+      // Fallback to basic feedback if analysis fails
+      setScanResult({
+        score: 70,
+        aspectScores: {
+          legibility: 70,
+          consistency: 70,
+          spacing: 70,
+          alignment: 70
+        },
+        feedback: [
+          "Terjadi kesalahan saat menganalisis tulisan.",
+          "Pastikan tulisan terlihat jelas dalam gambar.",
+          "Cobalah untuk mengambil foto dengan pencahayaan yang baik."
+        ],
+        overallImpression: "Sistem tidak dapat menganalisis tulisan dengan baik. Silakan coba lagi dengan foto yang lebih jelas.",
+        recommendations: defaultRecommendations
+      });
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const renderRecommendations = () => {
+    if (!scanResult?.recommendations || scanResult.recommendations.length === 0) {
+      return null;
+    }
+    
+    return (
+      <View style={styles.recommendationsContainer}>
+        <Text style={styles.recommendationsTitle}>Latihan yang Direkomendasikan:</Text>
+        
+        {scanResult.recommendations.map((recommendation, index) => (
+          <View key={index} style={styles.recommendationCard}>
+            <Text style={styles.recommendationTitle}>{recommendation.title}</Text>
+            <Text style={styles.recommendationDescription}>{recommendation.description}</Text>
+            <View style={styles.exerciseContainer}>
+              <Text style={styles.exerciseLabel}>Latihan:</Text>
+              <Text style={styles.exerciseText}>{recommendation.exercise}</Text>
+            </View>
+          </View>
+        ))}
+      </View>
+    );
+  };
+
+  // Function to get color based on score
+  const getColorForScore = (score: number) => {
+    if (score >= 90) return '#4CAF50';      // Green
+    if (score >= 75) return '#8BC34A';      // Light Green
+    if (score >= 60) return '#FFC107';      // Amber
+    if (score >= 40) return '#FF9800';      // Orange
+    return '#F44336';                       // Red
+  };
+
+  // Render the aspect ratings if available
+  const renderAspectRatings = () => {
+    if (!scanResult?.aspectScores) return null;
+    
+    const aspects = [
+      { name: 'Bentuk Huruf', score: scanResult.aspectScores.legibility },
+      { name: 'Konsistensi', score: scanResult.aspectScores.consistency },
+      { name: 'Jarak', score: scanResult.aspectScores.spacing },
+      { name: 'Kelurusan', score: scanResult.aspectScores.alignment }
+    ];
+    
+    return (
+      <View style={styles.aspectContainer}>
+        {aspects.map((aspect, index) => (
+          <View key={index} style={styles.aspectItem}>
+            <Text style={styles.aspectName}>{aspect.name}</Text>
+            <View style={styles.aspectBarContainer}>
+              <View 
+                style={[
+                  styles.aspectBar, 
+                  { 
+                    width: `${aspect.score}%`,
+                    backgroundColor: getColorForScore(aspect.score)
+                  }
+                ]} 
+              />
+            </View>
+            <Text style={styles.aspectScore}>{aspect.score}%</Text>
+          </View>
+        ))}
+      </View>
+    );
   };
 
   // Render progress indicators
@@ -941,6 +695,153 @@ export default function LearningActivitiesPage() {
     );
   };
 
+  const renderWritingScanActivity = (activity: WritingScanActivity) => {
+    // Function to get color based on score
+    const getColorForScore = (score: number) => {
+      if (score >= 90) return '#4CAF50';      // Green
+      if (score >= 75) return '#8BC34A';      // Light Green
+      if (score >= 60) return '#FFC107';      // Amber
+      if (score >= 40) return '#FF9800';      // Orange
+      return '#F44336';                       // Red
+    };
+
+    // Render the aspect ratings if available
+    const renderAspectRatings = () => {
+      if (!scanResult?.aspectScores) return null;
+      
+      const aspects = [
+        { name: 'Bentuk Huruf', score: scanResult.aspectScores.legibility },
+        { name: 'Konsistensi', score: scanResult.aspectScores.consistency },
+        { name: 'Jarak', score: scanResult.aspectScores.spacing },
+        { name: 'Kelurusan', score: scanResult.aspectScores.alignment }
+      ];
+      
+      return (
+        <View style={styles.aspectContainer}>
+          {aspects.map((aspect, index) => (
+            <View key={index} style={styles.aspectItem}>
+              <Text style={styles.aspectName}>{aspect.name}</Text>
+              <View style={styles.aspectBarContainer}>
+                <View 
+                  style={[
+                    styles.aspectBar, 
+                    { 
+                      width: `${aspect.score}%`,
+                      backgroundColor: getColorForScore(aspect.score)
+                    }
+                  ]} 
+                />
+              </View>
+              <Text style={styles.aspectScore}>{aspect.score}%</Text>
+            </View>
+          ))}
+        </View>
+      );
+    };
+
+    return (
+      <View style={styles.activityContainer}>
+        <Text style={styles.activityDescription}>{activity.description}</Text>
+        
+        <View style={styles.writingScanInstructions}>
+          <Text style={styles.instructionsTitle}>Petunjuk:</Text>
+          <Text style={styles.instructionsText}>{activity.instructions}</Text>
+        </View>
+        
+        <View style={styles.sampleContainer}>
+          <Text style={styles.sampleTitle}>Contoh Tulisan:</Text>
+          <Image 
+            source={activity.sampleImage}
+            style={styles.sampleImage} 
+            resizeMode="contain"
+          />
+        </View>
+        
+        {!capturedImage ? (
+          <TouchableOpacity
+            style={styles.cameraButton}
+            onPress={takePicture}
+          >
+            <Image 
+              source={images.cameraIcon}
+              style={styles.cameraIcon} 
+              resizeMode="contain"
+            />
+            <Text style={styles.cameraButtonText}>Ambil Foto Tulisan</Text>
+          </TouchableOpacity>
+        ) : (
+          <View style={styles.capturedImageContainer}>
+            <Image 
+              source={{ uri: capturedImage }}
+              style={styles.capturedImage} 
+              resizeMode="contain"
+            />
+            
+            {isProcessing ? (
+              <View style={styles.processingContainer}>
+                <ActivityIndicator size="large" color="#E30425" />
+                <Text style={styles.processingText}>Menganalisis tulisan...</Text>
+                <Text style={styles.processingSubtext}>AI sedang memeriksa tulisan kamu</Text>
+              </View>
+            ) : scanResult ? (
+              <View style={styles.resultContainer}>
+                <View style={styles.scoreCircleContainer}>
+                  <View style={[
+                    styles.scoreCircle, 
+                    { borderColor: getColorForScore(scanResult.score) }
+                  ]}>
+                    <Text style={styles.scoreText}>{scanResult.score}</Text>
+                    <Text style={styles.scoreLabel}>dari 100</Text>
+                  </View>
+                </View>
+                
+                {renderAspectRatings()}
+                
+                <View style={styles.feedbackContainer}>
+                  <Text style={styles.feedbackTitle}>Umpan Balik:</Text>
+                  {scanResult.feedback.map((item, index) => (
+                    <Text key={index} style={styles.feedbackItem}>• {item}</Text>
+                  ))}
+                  
+                  <Text style={styles.overallFeedback}>{scanResult.overallImpression}</Text>
+                </View>
+                
+                {/* Recommendations toggle button */}
+                <TouchableOpacity
+                  style={styles.recommendationsButton}
+                  onPress={() => setShowRecommendations(!showRecommendations)}
+                >
+                  <Text style={styles.recommendationsButtonText}>
+                    {showRecommendations ? 'Sembunyikan Latihan' : 'Lihat Latihan yang Direkomendasikan'}
+                  </Text>
+                </TouchableOpacity>
+                
+                {/* Show recommendations if toggle is on */}
+                {showRecommendations && renderRecommendations()}
+                
+                <TouchableOpacity
+                  style={styles.nextButton}
+                  onPress={handleNextActivity}
+                >
+                  <Text style={styles.nextButtonText}>Lanjut</Text>
+                </TouchableOpacity>
+              </View>
+            ) : null}
+            
+            {!scanResult && !isProcessing && (
+              <TouchableOpacity
+                style={styles.retakeButton}
+                onPress={() => setCapturedImage(null)}
+              >
+                <Text style={styles.retakeButtonText}>Ambil Ulang</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        )}
+      </View>
+    );
+  };
+
   // Render the current activity
   const renderActivity = () => {
     if (!currentActivity) return null;
@@ -958,6 +859,8 @@ export default function LearningActivitiesPage() {
         return renderSafetyActivity(currentActivity);
       case 'password':
         return renderPasswordActivity(currentActivity);
+      case 'writing_scan':
+        return renderWritingScanActivity(currentActivity);
       default:
         return null;
     }
@@ -1362,12 +1265,192 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
     textAlign: 'center',
   },
-  scoreContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
+  writingScanInstructions: {
+    backgroundColor: 'white',
+    borderRadius: 12,
+    padding: 15,
+    marginBottom: 20,
   },
+  instructionsTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#1A365D',
+    marginBottom: 8,
+  },
+  instructionsText: {
+    fontSize: 16,
+    lineHeight: 24,
+    color: '#333',
+  },
+  sampleContainer: {
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  sampleTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#1A365D',
+    marginBottom: 8,
+  },
+  sampleImage: {
+    width: '100%',
+    height: 100,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#DDD',
+  },
+  cameraButton: {
+    flexDirection: 'row',
+    backgroundColor: '#4CAF50',
+    borderRadius: 12,
+    padding: 15,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginVertical: 20,
+  },
+  cameraIcon: {
+    width: 24,
+    height: 24,
+    marginRight: 10,
+  },
+  cameraButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  capturedImageContainer: {
+    width: '100%',
+    alignItems: 'center',
+    marginVertical: 20,
+  },
+  capturedImage: {
+    width: '100%',
+    height: 200,
+    borderRadius: 8,
+    marginBottom: 15,
+  },
+  processingContainer: {
+    alignItems: 'center',
+    marginVertical: 15,
+  },
+  processingText: {
+    fontSize: 16,
+    color: '#1A365D',
+    fontStyle: 'italic',
+  },
+  retakeButton: {
+    backgroundColor: '#FFA726',
+    borderRadius: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    marginTop: 10,
+  },
+  retakeButtonText: {
+    color: 'white',
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+  scoreContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 15,
+  },
+  // scoreLabel: {
+  //   fontSize: 18,
+  //   color: '#1A365D',
+  //   fontWeight: 'bold',
+  //   marginRight: 10,
+  // },
+  scoreValue: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#4CAF50',
+  },
+  // feedbackTitle: {
+  //   fontSize: 18,
+  //   fontWeight: 'bold',
+  //   color: '#1A365D',
+  //   marginBottom: 10,
+  // },
+  // feedbackItem: {
+  //   fontSize: 16,
+  //   color: '#333',
+  //   marginBottom: 8,
+  //   paddingLeft: 10,
+  // },
+  // overallFeedback: {
+  //   fontSize: 16,
+  //   fontWeight: 'bold',
+  //   color: '#1A365D',
+  //   marginVertical: 15,
+  //   textAlign: 'center',
+  // },
+  // aspectContainer: {
+  //   width: '100%',
+  //   marginVertical: 20,
+  //   backgroundColor: 'white',
+  //   borderRadius: 12,
+  //   padding: 15,
+  //   elevation: 2,
+  //   shadowColor: '#000',
+  //   shadowOffset: { width: 0, height: 1 },
+  //   shadowOpacity: 0.2,
+  //   shadowRadius: 1.5,
+  // },
+  // aspectItem: {
+  //   flexDirection: 'row',
+  //   alignItems: 'center',
+  //   marginBottom: 12,
+  // },
+  // aspectName: {
+  //   width: 90,
+  //   fontSize: 14,
+  //   fontWeight: 'bold',
+  //   color: '#333',
+  // },
+  // aspectBarContainer: {
+  //   flex: 1,
+  //   height: 12,
+  //   backgroundColor: '#E0E0E0',
+  //   borderRadius: 6,
+  //   overflow: 'hidden',
+  //   marginRight: 10,
+  // },
+  // aspectBar: {
+  //   height: '100%',
+  //   borderRadius: 6,
+  // },
+  // aspectScore: {
+  //   width: 40,
+  //   fontSize: 12,
+  //   fontWeight: 'bold',
+  //   color: '#666',
+  //   textAlign: 'right',
+  // },
+  // scoreCircleContainer: {
+  //   alignItems: 'center',
+  //   marginBottom: 15,
+  // },
+  // scoreCircle: {
+  //   width: 100,
+  //   height: 100,
+  //   borderRadius: 50,
+  //   borderWidth: 8,
+  //   borderColor: '#4CAF50',
+  //   backgroundColor: 'white',
+  //   justifyContent: 'center',
+  //   alignItems: 'center',
+  //   elevation: 4,
+  //   shadowColor: '#000',
+  //   shadowOffset: { width: 0, height: 2 },
+  //   shadowOpacity: 0.3,
+  //   shadowRadius: 3,
+  // },
+  // processingSubtext: {
+  //   fontSize: 14,
+  //   color: '#666',
+  //   marginTop: 8,
+  // },
   scoreCard: {
     backgroundColor: 'white',
     borderRadius: 16,
@@ -1386,22 +1469,321 @@ const styles = StyleSheet.create({
     color: '#1A365D',
     marginBottom: 20,
   },
-  scoreCircle: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    backgroundColor: '#A5D6A7',
-    justifyContent: 'center',
+  // scoreCircle: {
+  //   width: 120,
+  //   height: 120,
+  //   borderRadius: 60,
+  //   backgroundColor: '#A5D6A7',
+  //   justifyContent: 'center',
+  //   alignItems: 'center',
+  //   marginBottom: 20,
+  //   borderWidth: 8,
+  //   borderColor: '#4CAF50',
+  // },
+  // Add these styles to your styles object in LearningActivitiesPage.tsx
+  // Add these styles to your styles object in LearningActivitiesPage.tsx
+  aiStatusContainer: {
+    flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 20,
+    justifyContent: 'flex-start',
+    marginTop: 10,
+    paddingTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: '#E0E0E0',
+  },
+  aiStatusLabel: {
+    fontSize: 14,
+    color: '#666',
+    marginRight: 10,
+  },
+  aspectContainer: {
+    width: '100%',
+    marginVertical: 15,
+    backgroundColor: 'white',
+    borderRadius: 12,
+    padding: 15,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 1.5,
+  },
+  aspectItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  aspectName: {
+    width: 90,
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  aspectBarContainer: {
+    flex: 1,
+    height: 12,
+    backgroundColor: '#E0E0E0',
+    borderRadius: 6,
+    overflow: 'hidden',
+    marginRight: 10,
+  },
+  aspectBar: {
+    height: '100%',
+    borderRadius: 6,
+  },
+  aspectScore: {
+    width: 40,
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: '#666',
+    textAlign: 'right',
+  },
+  scoreCircleContainer: {
+    alignItems: 'center',
+    marginBottom: 15,
+  },
+  scoreCircle: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
     borderWidth: 8,
     borderColor: '#4CAF50',
+    backgroundColor: 'white',
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 3,
   },
   scoreText: {
-    fontSize: 36,
+    fontSize: 32,
     fontWeight: 'bold',
     color: '#1A365D',
   },
+  scoreLabel: {
+    fontSize: 12,
+    color: '#666',
+  },
+  processingSubtext: {
+    fontSize: 14,
+    color: '#666',
+    marginTop: 8,
+  },
+  feedbackContainer: {
+    width: '100%',
+    backgroundColor: 'white',
+    borderRadius: 12,
+    padding: 15,
+    marginBottom: 15,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 1.5,
+  },
+  feedbackTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#1A365D',
+    marginBottom: 10,
+  },
+  feedbackItem: {
+    fontSize: 16,
+    lineHeight: 22,
+    color: '#333',
+    marginBottom: 8,
+    paddingLeft: 10,
+  },
+  overallFeedback: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#1A365D',
+    marginTop: 15,
+    textAlign: 'center',
+    fontStyle: 'italic',
+  },
+  tipsContainer: {
+    backgroundColor: '#F5F5F5',
+    borderRadius: 12,
+    padding: 15,
+    marginTop: 15,
+  },
+  tipTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#1A365D',
+    marginBottom: 10,
+  },
+  tipItem: {
+    fontSize: 14,
+    lineHeight: 22,
+    color: '#333',
+    marginBottom: 6,
+  },
+  disabledButton: {
+    backgroundColor: '#CCCCCC',
+    opacity: 0.7,
+  },
+  captureButtonsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    width: '100%',
+    marginTop: 15,
+  },
+  analyzeButton: {
+    backgroundColor: '#4CAF50',
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    width: '48%',
+    alignItems: 'center',
+  },
+  analyzeButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  recommendationsButton: {
+    backgroundColor: '#1A365D',
+    borderRadius: 20,
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    alignSelf: 'center',
+    marginVertical: 15,
+  },
+  recommendationsButtonText: {
+    color: 'white',
+    fontWeight: 'bold',
+    fontSize: 14,
+  },
+  recommendationsContainer: {
+    backgroundColor: '#F5F5F5',
+    borderRadius: 12,
+    padding: 15,
+    marginVertical: 10,
+  },
+  recommendationsTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#1A365D',
+    marginBottom: 15,
+    textAlign: 'center',
+  },
+  recommendationCard: {
+    backgroundColor: 'white',
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 10,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 1.5,
+  },
+  recommendationTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#1A365D',
+    marginBottom: 5,
+  },
+  recommendationDescription: {
+    fontSize: 14,
+    color: '#333',
+    marginBottom: 10,
+  },
+  exerciseContainer: {
+    backgroundColor: '#E8F4F8',
+    borderRadius: 6,
+    padding: 10,
+  },
+  exerciseLabel: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#1A365D',
+    marginBottom: 5,
+  },
+  exerciseText: {
+    fontSize: 14,
+    color: '#333',
+    fontStyle: 'italic',
+  },
+  // feedbackContainer: {
+  //   backgroundColor: '#E3F2FD',
+  //   borderRadius: 12,
+  //   padding: 15,
+  //   marginVertical: 20,
+  // },
+  // recommendationsButton: {
+  //   backgroundColor: '#1A365D',
+  //   borderRadius: 20,
+  //   paddingVertical: 10,
+  //   paddingHorizontal: 20,
+  //   alignSelf: 'center',
+  //   marginVertical: 15,
+  // },
+  // recommendationsButtonText: {
+  //   color: 'white',
+  //   fontWeight: 'bold',
+  //   fontSize: 14,
+  // },
+  // recommendationsContainer: {
+  //   backgroundColor: '#F5F5F5',
+  //   borderRadius: 12,
+  //   padding: 15,
+  //   marginVertical: 10,
+  // },
+  // recommendationsTitle: {
+  //   fontSize: 18,
+  //   fontWeight: 'bold',
+  //   color: '#1A365D',
+  //   marginBottom: 15,
+  //   textAlign: 'center',
+  // },
+  // recommendationCard: {
+  //   backgroundColor: 'white',
+  //   borderRadius: 8,
+  //   padding: 12,
+  //   marginBottom: 10,
+  //   elevation: 2,
+  //   shadowColor: '#000',
+  //   shadowOffset: { width: 0, height: 1 },
+  //   shadowOpacity: 0.2,
+  //   shadowRadius: 1.5,
+  // },
+  // recommendationTitle: {
+  //   fontSize: 16,
+  //   fontWeight: 'bold',
+  //   color: '#1A365D',
+  //   marginBottom: 5,
+  // },
+  // recommendationDescription: {
+  //   fontSize: 14,
+  //   color: '#333',
+  //   marginBottom: 10,
+  // },
+  // exerciseContainer: {
+  //   backgroundColor: '#E8F4F8',
+  //   borderRadius: 6,
+  //   padding: 10,
+  // },
+  // exerciseLabel: {
+  //   fontSize: 14,
+  //   fontWeight: 'bold',
+  //   color: '#1A365D',
+  //   marginBottom: 5,
+  // },
+  // exerciseText: {
+  //   fontSize: 14,
+  //   color: '#333',
+  //   fontStyle: 'italic',
+  // },
+  // scoreText: {
+  //   fontSize: 36,
+  //   fontWeight: 'bold',
+  //   color: '#1A365D',
+  // },
   scoreMessage: {
     fontSize: 18,
     textAlign: 'center',
@@ -1424,7 +1806,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 20,
     right: 20,
-    width: 100,
-    height: 100,
+    width: 75,
+    height: 75,
   },
 });

@@ -125,7 +125,7 @@ const DashboardPage = () => {
       
       setIsLoading(true);
       try {
-        const response = await fetch(`${process.env.EXPO_PUBLIC_API_URL || 'http://localhost:5000'}/api/users/students`, {
+        const response = await fetch(`${process.env.API_URL || 'http://192.168.1.105:5000'}/api/users/students`, {
           method: 'GET',
           headers: {
             'Authorization': `Bearer ${token}`,

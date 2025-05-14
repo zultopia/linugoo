@@ -7,14 +7,10 @@ const morgan = require("morgan");
 const app = express();
 
 const isProduction = process.env.NODE_ENV === 'production';
-const clientUrl = process.env.CLIENT_URL || (isProduction ? 'your-production-url' : 'http://localhost:3000');
+// const clientUrl = process.env.CLIENT_URL || (isProduction ? 'your-production-url' : 'http://localhost:5000');
 
 app.use(cors({
-  origin: [
-    clientUrl,
-    "http://localhost:19006",
-    "http://localhost:5000",
-  ],
+  origin: '*',
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
   allowedHeaders: ['Content-Type', 'Authorization']
@@ -27,11 +23,15 @@ app.use(morgan("dev"));
 const authRoutes = require("./routes/auth.routes");
 const userRoutes = require("./routes/user.routes");
 
-app.use("/auth", authRoutes);
-app.use("/users", userRoutes);
+app.use("/api/auth", authRoutes);
+app.use("/api/users", userRoutes);
 
 app.get("/", (req, res) => {
   res.json({ message: "API is running..." });
+});
+
+app.get('/api/test', (req, res) => {
+  res.json({ message: 'Connection successful!' });
 });
 
 app.use((err, req, res, next) => {

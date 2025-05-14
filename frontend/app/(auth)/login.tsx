@@ -12,7 +12,8 @@ import {
   KeyboardAvoidingView,
   ScrollView,
   ActivityIndicator,
-  ImageBackground
+  ImageBackground,
+  Alert
 } from "react-native";
 import Toast from "react-native-toast-message";
 import Icon from "react-native-vector-icons/Feather"; 
@@ -21,6 +22,8 @@ import { useAuth } from "../../context/AuthContext";
 
 const { width, height } = Dimensions.get('window');
 const isSmallDevice = width < 768;
+
+const API_URL = process.env.API_URL || 'http://192.168.1.105:5000';
 
 const LoginPage = () => {
   const router = useRouter();
@@ -40,6 +43,19 @@ const LoginPage = () => {
       }
     }
   }, [user]);
+  
+  const testConnection = async () => {
+    try {
+      const response = await fetch(`${API_URL}/api/test`);
+      const data = await response.json();
+      console.log('Test response:', data);
+      Alert.alert('Koneksi Berhasil', data.message);
+    } catch (error) {
+      console.error('Test error:', error);
+      const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
+      Alert.alert('Koneksi Gagal', errorMessage);
+    }
+  };
 
   const handleLogin = async () => {
     // Reset error state before login
@@ -149,7 +165,7 @@ const LoginPage = () => {
                 )}
               </View>
 
-              <TouchableOpacity style={styles.googleButton}>
+              <TouchableOpacity style={styles.googleButton} onPress={testConnection}>
                 <Image 
                   source={require("../../assets/images/google-icon.png")} 
                   style={styles.googleIcon} 
