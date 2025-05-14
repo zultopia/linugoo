@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
-  Image,
   ScrollView,
   TouchableOpacity,
   StyleSheet,
@@ -11,19 +10,17 @@ import {
   StatusBar,
   FlatList,
   ActivityIndicator,
-  Alert,
-  Modal,
   Linking,
   Platform
 } from 'react-native';
-import { Svg, Circle, Text as SvgText, G, Path } from 'react-native-svg';
+import { Svg, Circle, Text as SvgText } from 'react-native-svg';
 import { useRouter } from 'expo-router';
 import { useAuth } from '../../context/AuthContext';
 import Toast from "react-native-toast-message";
 import Navbar from '../components/navbar';
 import { Ionicons } from '@expo/vector-icons';
 
-const API_URL = process.env.API_URL || 'http://localhost:5000';
+const API_URL = process.env.API_URL || 'http://192.168.1.105:5000';
 
 const windowWidth = Dimensions.get('window').width;
 const isTablet = windowWidth >= 768;
@@ -114,7 +111,6 @@ const DataSiswa = () => {
   const [students, setStudents] = useState<Student[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isMounted, setIsMounted] = useState(true);
-  const [showProgressModal, setShowProgressModal] = useState(false);
   
   const dummyProgress = {
     literacy_progress: {
@@ -200,7 +196,7 @@ const DataSiswa = () => {
           studentsList = studentsList.map((student: Student) => ({
             ...student,
             ...dummyProgress,
-            parent_phone: '+6281234567890' 
+            parent_phone: '+6285809859941' 
           }));
           
           if (isMounted) {
@@ -355,13 +351,186 @@ const DataSiswa = () => {
     );
   }
 
+  // Rendering the progress cards using FlatList instead of ScrollView
+  const renderProgressCards = () => {
+    if (!selectedStudent || !selectedStudent.literacy_progress) return null;
+    
+    const progressData = Object.entries(selectedStudent.literacy_progress).map(([key, value]) => ({
+      key,
+      value
+    }));
+    
+    // Render directly without FlatList to avoid nesting issues
+    return (
+      <ScrollView 
+        horizontal 
+        showsHorizontalScrollIndicator={false}
+        style={styles.progressCardsContainer}
+      >
+        {progressData.map(item => (
+          <View key={item.key} style={styles.progressCard}>
+            <CircularProgress percentage={item.value} size={80} color="#C70039" />
+            <Text style={styles.progressCardTitle}>
+              {item.key.charAt(0).toUpperCase() + item.key.slice(1)}
+            </Text>
+            <TouchableOpacity style={styles.detailButton}>
+              <Text style={styles.detailButtonText}>Detail</Text>
+            </TouchableOpacity>
+          </View>
+        ))}
+      </ScrollView>
+    );
+  };
+
+  // Main layout - using View instead of ScrollView at the top level
+  // Function to render the right panel content with proper structure to avoid nested VirtualizedLists
+  const renderRightPanelContent = () => {
+    if (!selectedStudent) {
+      return (
+        <View style={styles.emptyStateContainer}>
+          <Ionicons name="person-outline" size={64} color="#CCC" />
+          <Text style={styles.emptyStateText}>Pilih siswa untuk melihat progress</Text>
+        </View>
+      );
+    }
+
+    // Instead of returning nested Flatlist components, we'll render items directly for modules and files
+    const renderDigitalProgresses = () => {
+      if (!selectedStudent.digital_progress) return null;
+      
+      return Object.entries(selectedStudent.digital_progress).map(([key, value]) => (
+        <View key={key} style={styles.barContainer}>
+          <Text style={styles.barValue}>{value}%</Text>
+          <View style={styles.barWrapper}>
+            <View 
+              style={[
+                styles.bar, 
+                { 
+                  height: (value / 100) * 160,
+                  backgroundColor: value >= 80 ? '#4CAF50' : value >= 60 ? '#FFC107' : '#C70039'
+                }
+              ]} 
+            />
+          </View>
+          <Text style={styles.barLabel}>
+            {key === 'membacaDigital' ? 'Membaca\nDigital' :
+             key === 'menulisTeks' ? 'Menulis\nTeks' :
+             key === 'berhitungDigital' ? 'Berhitung\nDigital' :
+             key === 'mediaPembelajaran' ? 'Media\nPembelajaran' :
+             key.charAt(0).toUpperCase() + key.slice(1)}
+          </Text>
+        </View>
+      ));
+    };
+
+    // Render modules directly instead of using FlatList
+    const renderModulesDirectly = () => {
+      if (!selectedStudent.modules_completed) return null;
+      
+      return selectedStudent.modules_completed.map((module, index) => (
+        <View key={index} style={styles.moduleItem}>
+          <Ionicons name="checkmark-circle" size={20} color="#4CAF50" />
+          <Text style={styles.moduleText}>{module}</Text>
+        </View>
+      ));
+    };
+
+    // Render files directly instead of using FlatList
+    const renderFilesDirectly = () => {
+      if (!selectedStudent.files_accessed) return null;
+      
+      return selectedStudent.files_accessed.map((file, index) => (
+        <View key={index} style={styles.fileItem}>
+          <Ionicons name="document-text" size={20} color="#2196F3" />
+          <Text style={styles.fileText}>{file}</Text>
+        </View>
+      ));
+    };
+
+    // Structure using a single FlatList for the main content
+    return (
+      <FlatList
+        data={[{ key: 'content' }]} // Single item to render everything in one pass
+        renderItem={() => (
+          <View>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Progress Literasi - {selectedStudent.name}</Text>
+              <TouchableOpacity 
+                style={[
+                  styles.whatsappButton,
+                  !isTablet && styles.whatsappButtonMobile
+                ]}
+                onPress={sendProgressToWhatsApp}
+              >
+                <Ionicons name="logo-whatsapp" size={isTablet ? 20 : 18} color="#FFFFFF" />
+                {windowWidth > 350 ? (
+                  <Text style={[
+                    styles.whatsappButtonText,
+                    !isTablet && styles.whatsappButtonTextMobile
+                  ]}>
+                    {isTablet ? 'Kirim ke Orang Tua' : 'Kirim Rapor'}
+                  </Text>
+                ) : null}
+              </TouchableOpacity>
+            </View>
+            
+            {/* Progress Cards - Horizontal FlatList */}
+            {renderProgressCards()}
+
+            <View style={styles.chartSection}>
+              <Text style={styles.chartTitle}>Progress Pembelajaran Digital</Text>
+              
+              <View style={styles.chartLegend}>
+                <View style={styles.legendItem}>
+                  <View style={[styles.legendColor, { backgroundColor: '#4CAF50' }]} />
+                  <Text style={styles.legendText}>Sangat Baik (≥80%)</Text>
+                </View>
+                <View style={styles.legendItem}>
+                  <View style={[styles.legendColor, { backgroundColor: '#FFC107' }]} />
+                  <Text style={styles.legendText}>Baik (60-79%)</Text>
+                </View>
+                <View style={styles.legendItem}>
+                  <View style={[styles.legendColor, { backgroundColor: '#C70039' }]} />
+                  <Text style={styles.legendText}>Perlu Peningkatan (&lt;60%)</Text>
+                </View>
+              </View>
+              
+              <View style={styles.barChartContainer}>
+                {renderDigitalProgresses()}
+              </View>
+            </View>
+
+            <View style={styles.modulesSection}>
+              <View style={styles.moduleContainer}>
+                <Text style={styles.moduleTitle}>Modul yang Diselesaikan</Text>
+                <View style={styles.moduleList}>
+                  {renderModulesDirectly()}
+                </View>
+              </View>
+
+              <View style={styles.fileContainer}>
+                <Text style={styles.fileTitle}>Materi yang Diakses</Text>
+                <View style={styles.fileList}>
+                  {renderFilesDirectly()}
+                </View>
+              </View>
+            </View>
+          </View>
+        )}
+        keyExtractor={item => item.key}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.rightPanelContent}
+      />
+    );
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="#FFF5E0" />
       
       <Navbar onNavigate={handleNavigation} />
       
-      <ScrollView style={styles.mainContent} showsVerticalScrollIndicator={false}>
+      <View style={styles.mainContent}>
         <View style={isTablet ? styles.contentTablet : styles.contentMobile}>
           <View style={styles.leftPanel}>
             <View style={styles.classSelectorContainer}>
@@ -380,28 +549,30 @@ const DataSiswa = () => {
               {isClassDropdownOpen && (
                 <View style={styles.dropdownOverlay}>
                   <View style={styles.dropdownMenu}>
-                    <ScrollView style={styles.dropdownScroll}>
-                      {classOptions.map((className, index) => (
+                    <FlatList
+                      data={classOptions}
+                      keyExtractor={(item, index) => `class-${index}`}
+                      renderItem={({ item }) => (
                         <TouchableOpacity 
-                          key={index}
                           style={[
                             styles.dropdownItem,
-                            selectedClass === className && styles.dropdownItemSelected
+                            selectedClass === item && styles.dropdownItemSelected
                           ]}
                           onPress={() => {
-                            setSelectedClass(className);
+                            setSelectedClass(item);
                             setIsClassDropdownOpen(false);
                           }}
                         >
                           <Text style={[
                             styles.dropdownItemText,
-                            selectedClass === className && styles.dropdownItemTextSelected
+                            selectedClass === item && styles.dropdownItemTextSelected
                           ]}>
-                            {className}
+                            {item}
                           </Text>
                         </TouchableOpacity>
-                      ))}
-                    </ScrollView>
+                      )}
+                      style={styles.dropdownScroll}
+                    />
                   </View>
                 </View>
               )}
@@ -481,113 +652,10 @@ const DataSiswa = () => {
           </View>
 
           <View style={styles.rightPanel}>
-            {selectedStudent ? (
-              <>
-                <View style={styles.sectionHeader}>
-                  <Text style={styles.sectionTitle}>Progress Literasi - {selectedStudent.name}</Text>
-                  <TouchableOpacity 
-                    style={styles.whatsappButton}
-                    onPress={sendProgressToWhatsApp}
-                  >
-                    <Ionicons name="logo-whatsapp" size={20} color="#FFFFFF" />
-                    <Text style={styles.whatsappButtonText}>Kirim ke Orang Tua</Text>
-                  </TouchableOpacity>
-                </View>
-                
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.progressCardsContainer}>
-                  {selectedStudent.literacy_progress && Object.entries(selectedStudent.literacy_progress).map(([key, value]) => (
-                    <View key={key} style={styles.progressCard}>
-                      <CircularProgress percentage={value} size={80} color="#C70039" />
-                      <Text style={styles.progressCardTitle}>
-                        {key.charAt(0).toUpperCase() + key.slice(1)}
-                      </Text>
-                      <TouchableOpacity style={styles.detailButton}>
-                        <Text style={styles.detailButtonText}>Detail</Text>
-                      </TouchableOpacity>
-                    </View>
-                  ))}
-                </ScrollView>
-
-                <View style={styles.chartSection}>
-                  <Text style={styles.chartTitle}>Progress Pembelajaran Digital</Text>
-                  
-                  <View style={styles.chartLegend}>
-                    <View style={styles.legendItem}>
-                      <View style={[styles.legendColor, { backgroundColor: '#4CAF50' }]} />
-                      <Text style={styles.legendText}>Sangat Baik (≥80%)</Text>
-                    </View>
-                    <View style={styles.legendItem}>
-                      <View style={[styles.legendColor, { backgroundColor: '#FFC107' }]} />
-                      <Text style={styles.legendText}>Baik (60-79%)</Text>
-                    </View>
-                    <View style={styles.legendItem}>
-                      <View style={[styles.legendColor, { backgroundColor: '#C70039' }]} />
-                      <Text style={styles.legendText}>Perlu Peningkatan (&lt;60%)</Text>
-                    </View>
-                  </View>
-                  
-                  <View style={styles.barChartContainer}>
-                    {selectedStudent.digital_progress && Object.entries(selectedStudent.digital_progress).map(([key, value]) => (
-                      <View key={key} style={styles.barContainer}>
-                        <Text style={styles.barValue}>{value}%</Text>
-                        <View style={styles.barWrapper}>
-                          <View 
-                            style={[
-                              styles.bar, 
-                              { 
-                                height: (value / 100) * 160,
-                                backgroundColor: value >= 80 ? '#4CAF50' : value >= 60 ? '#FFC107' : '#C70039'
-                              }
-                            ]} 
-                          />
-                        </View>
-                        <Text style={styles.barLabel}>
-                          {key === 'membacaDigital' ? 'Membaca\nDigital' :
-                           key === 'menulisTeks' ? 'Menulis\nTeks' :
-                           key === 'berhitungDigital' ? 'Berhitung\nDigital' :
-                           key === 'mediaPembelajaran' ? 'Media\nPembelajaran' :
-                           key.charAt(0).toUpperCase() + key.slice(1)}
-                        </Text>
-                      </View>
-                    ))}
-                  </View>
-                </View>
-
-                <View style={styles.modulesSection}>
-                  <View style={styles.moduleContainer}>
-                    <Text style={styles.moduleTitle}>Modul yang Diselesaikan</Text>
-                    <ScrollView style={styles.moduleList}>
-                      {selectedStudent.modules_completed?.map((module, index) => (
-                        <View key={index} style={styles.moduleItem}>
-                          <Ionicons name="checkmark-circle" size={20} color="#4CAF50" />
-                          <Text style={styles.moduleText}>{module}</Text>
-                        </View>
-                      ))}
-                    </ScrollView>
-                  </View>
-
-                  <View style={styles.fileContainer}>
-                    <Text style={styles.fileTitle}>Materi yang Diakses</Text>
-                    <ScrollView style={styles.fileList}>
-                      {selectedStudent.files_accessed?.map((file, index) => (
-                        <View key={index} style={styles.fileItem}>
-                          <Ionicons name="document-text" size={20} color="#2196F3" />
-                          <Text style={styles.fileText}>{file}</Text>
-                        </View>
-                      ))}
-                    </ScrollView>
-                  </View>
-                </View>
-              </>
-            ) : (
-              <View style={styles.emptyStateContainer}>
-                <Ionicons name="person-outline" size={64} color="#CCC" />
-                <Text style={styles.emptyStateText}>Pilih siswa untuk melihat progress</Text>
-              </View>
-            )}
+            {renderRightPanelContent()}
           </View>
         </View>
-      </ScrollView>
+      </View>
       <Toast />
     </SafeAreaView>
   );
@@ -615,9 +683,11 @@ const styles = StyleSheet.create({
   },
   contentMobile: {
     flexDirection: 'column',
+    height: '100%',
   },
   contentTablet: {
     flexDirection: 'row',
+    height: '100%',
   },
   leftPanel: {
     backgroundColor: '#FFFFFF',
@@ -631,6 +701,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
+    maxHeight: isTablet ? '100%' : 500,
   },
   rightPanel: {
     backgroundColor: '#FFFFFF',
@@ -642,6 +713,10 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
+    maxHeight: isTablet ? '100%' : undefined,
+  },
+  rightPanelContent: {
+    paddingBottom: 20,
   },
   classSelectorContainer: {
     position: 'relative',
@@ -816,11 +891,14 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 20,
+    flexWrap: 'wrap',
   },
   sectionTitle: {
-    fontSize: 20,
+    fontSize: isTablet ? 20 : 16,
     fontWeight: 'bold',
     color: '#14213D',
+    flex: 1,
+    marginBottom: 5,
   },
   whatsappButton: {
     flexDirection: 'row',
@@ -830,11 +908,20 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 20,
   },
+  whatsappButtonMobile: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 16,
+  },
   whatsappButtonText: {
     color: '#FFFFFF',
     fontSize: 14,
     fontWeight: '600',
     marginLeft: 6,
+  },
+  whatsappButtonTextMobile: {
+    fontSize: 12,
+    marginLeft: 4,
   },
   progressCardsContainer: {
     marginBottom: 24,
@@ -956,6 +1043,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#F9F9F9',
     borderRadius: 12,
     padding: 16,
+    height: 250,
   },
   moduleTitle: {
     fontSize: 16,
@@ -964,7 +1052,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   moduleList: {
-    maxHeight: 200,
+    height: 200,
   },
   moduleItem: {
     flexDirection: 'row',
@@ -982,6 +1070,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#F9F9F9',
     borderRadius: 12,
     padding: 16,
+    height: 250,
   },
   fileTitle: {
     fontSize: 16,
@@ -990,7 +1079,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   fileList: {
-    maxHeight: 200,
+    height: 200,
   },
   fileItem: {
     flexDirection: 'row',

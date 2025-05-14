@@ -9,9 +9,9 @@ module.exports = {
   port: process.env.PORT || 5000,
   firebaseConfig: {
     credential: {
-      projectId: serviceAccount.project_id,
-      clientEmail: serviceAccount.client_email,
-      privateKey: serviceAccount.private_key.replace(/\\n/g, "\n"),
+      projectId: serviceAccount.project_id || process.env.FIREBASE_PROJECT_ID,
+      clientEmail: serviceAccount.client_email || process.env.FIREBASE_CLIENT_EMAIL,
+      privateKey: serviceAccount.private_key.replace(/\\n/g, "\n") || process.env.FIREBASE_PRIVATE_KEY,
     },
     databaseURL: "https://linugoo-default-rtdb.asia-southeast1.firebasedatabase.app",
     storageBucket: "linugoo.appspot.com",
