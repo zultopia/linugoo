@@ -1,34 +1,32 @@
 const admin = require("firebase-admin");
-const fs = require("fs");
-const path = require("path");
 
-let serviceAccount;
+let serviceAccount = {};
 try {
-    const serviceAccountPath = path.join(__dirname, "..", process.env.SERVICE_ACCOUNT);
-    const rawData = fs.readFileSync(serviceAccountPath, "utf8");
-    serviceAccount = JSON.parse(rawData);
-} catch (error) {
-    console.error("Error reading service account file:", error.message);
+    serviceAccount = JSON.parse(process.env.FIREBASE_ADMIN_SDK || "{}");
+} catch (err) {
+    console.error("Invalid FIREBASE_ADMIN_SDK JSON:", err.message);
     serviceAccount = {};
 }
 
+const useEnvVars = Object.keys(serviceAccount).length === 0;
+
 admin.initializeApp({
-    credential: admin.credential.cert({
-        type: serviceAccount.type || process.env.FIREBASE_TYPE,
-        projectId: serviceAccount.project_id || process.env.FIREBASE_PROJECT_ID,
-        privateKeyId: serviceAccount.private_key_id || process.env.FIREBASE_PRIVATE_KEY_ID,
-        privateKey: (serviceAccount.private_key ? serviceAccount.private_key.replace(/\\n/g, "\n") : null) || process.env.FIREBASE_PRIVATE_KEY,
-        clientEmail: serviceAccount.client_email || process.env.FIREBASE_CLIENT_EMAIL,
-        clientId: serviceAccount.client_id || process.env.FIREBASE_CLIENT_ID,
-        authUri: serviceAccount.auth_uri || process.env.FIREBASE_AUTH_URI,
-        tokenUri: serviceAccount.token_uri || process.env.FIREBASE_TOKEN_URI,
-        authProviderX509CertUrl: serviceAccount.auth_provider_x509_cert_url || process.env.FIREBASE_AUTH_PROVIDER_X509_CERT_URL,
-        clientX509CertUrl: serviceAccount.client_x509_cert_url || process.env.FIREBASE_CLIENT_X509_CERT_URL,
-        universeDomain: serviceAccount.universe_domain || process.env.FIREBASE_UNIVERSE_DOMAIN
-    }),
+    credential: admin.credential.cert(useEnvVars ? {
+        type: process.env.FIREBASE_TYPE,
+        projectId: process.env.FIREBASE_PROJECT_ID,
+        privateKeyId: process.env.FIREBASE_PRIVATE_KEY_ID,
+        privateKey: (process.env.FIREBASE_PRIVATE_KEY || "").replace(/\\n/g, "\n"),
+        clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+        clientId: process.env.FIREBASE_CLIENT_ID,
+        authUri: process.env.FIREBASE_AUTH_URI,
+        tokenUri: process.env.FIREBASE_TOKEN_URI,
+        authProviderX509CertUrl: process.env.FIREBASE_AUTH_PROVIDER_X509_CERT_URL,
+        clientX509CertUrl: process.env.FIREBASE_CLIENT_X509_CERT_URL,
+        universeDomain: process.env.FIREBASE_UNIVERSE_DOMAIN,
+    } : serviceAccount),
     databaseURL: "https://linugoo-default-rtdb.asia-southeast1.firebasedatabase.app",
-    projectId: serviceAccount.project_id || process.env.FIREBASE_PROJECT_ID,
-    storageBucket: "linugoo.appspot.com"
+    projectId: process.env.FIREBASE_PROJECT_ID,
+    storageBucket: "linugoo.appspot.com",
 });
 
 const db = admin.firestore();
