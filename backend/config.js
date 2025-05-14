@@ -8,17 +8,27 @@ try {
   );
 } catch (error) {
   console.error("Error reading service account file:", error.message);
-  // Will fall back to environment variables
+  serviceAccount = {};
 }
+
+const useEnvVars = Object.keys(serviceAccount).length === 0;
 
 module.exports = {
   port: process.env.PORT || 5000,
   firebaseConfig: {
-    credential: {
-      projectId: serviceAccount.project_id || process.env.FIREBASE_PROJECT_ID,
-      clientEmail: serviceAccount.client_email || process.env.FIREBASE_CLIENT_EMAIL,
-      privateKey: serviceAccount.private_key?.replace(/\\n/g, "\n") || process.env.FIREBASE_PRIVATE_KEY,
-    },
+    credential: useEnvVars ? {
+      type: process.env.FIREBASE_TYPE,
+      projectId: process.env.FIREBASE_PROJECT_ID,
+      privateKeyId: process.env.FIREBASE_PRIVATE_KEY_ID,
+      privateKey: (process.env.FIREBASE_PRIVATE_KEY || "").replace(/\\n/g, "\n"),
+      clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+      clientId: process.env.FIREBASE_CLIENT_ID,
+      authUri: process.env.FIREBASE_AUTH_URI,
+      tokenUri: process.env.FIREBASE_TOKEN_URI,
+      authProviderX509CertUrl: process.env.FIREBASE_AUTH_PROVIDER_X509_CERT_URL,
+      clientX509CertUrl: process.env.FIREBASE_CLIENT_X509_CERT_URL,
+      universeDomain: process.env.FIREBASE_UNIVERSE_DOMAIN,
+    } : serviceAccount,
     databaseURL: "https://linugoo-default-rtdb.asia-southeast1.firebasedatabase.app",
     storageBucket: "linugoo.appspot.com",
   },
@@ -29,4 +39,4 @@ module.exports = {
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
     allowedHeaders: ['Content-Type', 'Authorization']
   },
-}
+};
