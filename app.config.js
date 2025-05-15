@@ -17,6 +17,6 @@ export default {
       }
     },
     extra: {
-      apiUrl: process.env.API_URL || "https://api.linugoo.com"
+      apiUrl: process.env.API_URL || "https://linugoo-production-e38a.up.railway.app"
     }
   };

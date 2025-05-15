@@ -23,7 +23,7 @@ import { useAuth } from "../../context/AuthContext";
 const { width, height } = Dimensions.get('window');
 const isSmallDevice = width < 768;
 
-const API_URL = process.env.API_URL || 'http://192.168.1.105:5000';
+const API_URL = process.env.API_URL || 'https://linugoo-production-e38a.up.railway.app';
 
 const LoginPage = () => {
   const router = useRouter();

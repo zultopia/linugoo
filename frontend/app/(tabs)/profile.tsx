@@ -21,7 +21,7 @@ import { Ionicons } from '@expo/vector-icons';
 const { width } = Dimensions.get('window');
 const isSmallDevice = width < 768;
 
-const API_URL = process.env.API_URL || 'http://192.168.1.105:5000';
+const API_URL = process.env.API_URL || 'https://linugoo-production-e38a.up.railway.app';
 
 interface ProfileData {
   id: string;

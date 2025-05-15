@@ -20,6 +20,8 @@ import Navbar from '../components/navbar';
 
 const { width: screenWidth } = Dimensions.get('window');
 
+const API_URL = process.env.API_URL || 'https://linugoo-production-e38a.up.railway.app';
+
 interface Student {
   id: string;
   username: string;
@@ -125,7 +127,7 @@ const DashboardPage = () => {
       
       setIsLoading(true);
       try {
-        const response = await fetch(`${process.env.API_URL || 'http://192.168.1.105:5000'}/api/users/students`, {
+        const response = await fetch(`${API_URL}/api/users/students`, {
           method: 'GET',
           headers: {
             'Authorization': `Bearer ${token}`,
